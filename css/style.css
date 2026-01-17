@@ -1,0 +1,79 @@
+body {
+    margin: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background-color: #f0f0f0;
+    font-family: Arial, sans-serif;
+}
+
+.container {
+    text-align: center;
+}
+
+h1 {
+    color: green;
+    margin-bottom: 20px;
+}
+
+h3 {
+    margin-bottom: 20px;
+}
+
+.box {
+    display: flex;
+    flex-direction: row;
+    gap: 20px;
+    padding: 20px;
+    background: #fff;
+    border: 1px solid #ccc;
+}
+
+.box > div {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+input[type=range] {
+  width: 100%;
+}
+
+input[type=number] {
+	width: 80%;
+}
+button {
+  padding: 8px 12px;
+  background: #444;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+button:hover {
+  background: #666;
+}
+
+
+
+label {
+  display: flex;
+  justify-content: space-between;
+  width: 200px; 
+}
+
+canvas, #glCanvas {
+    width: 800px;
+    height: 600px;
+    background: #200;
+    display: block;
+}
+
+
+.smallContainer{
+	display: flex;
+	justify-content: 'space-around';        
+	align-items: 'center';
+}
+
