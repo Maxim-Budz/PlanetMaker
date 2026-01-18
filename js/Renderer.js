@@ -1,4 +1,4 @@
-const { mat4, vec3 } = glMatrix;
+const { mat3, mat4, vec3, vec4 } = glMatrix;
 
 export default class Renderer {
     constructor(canvas) {
@@ -11,8 +11,18 @@ export default class Renderer {
         this.view = glMatrix.mat4.create();
         this.proj = glMatrix.mat4.create();
 
+
 		this.camSpeed = 1.0;
 		this.camHeight = 10.0;
+		this.camPos = [10, -16, 10];
+		
+		this.lights = [
+			{ position:[4,4,4], color:[1.0,0.0,0.0], intensity:1.0, distance:100.0},
+			{ position:[-4,2,-4], color:[0.0,1.0,0.0], intensity:0.7, distance:7.0},
+			{ position:[4,6,-4], color:[0.0,0.0,1.0], intensity:0.8, distance: 30.0},  
+			{ position:[-4,0,4], color:[1.0,1.0,1.0], intensity:0.5, distance: 30.0},  
+		];
+		this.numLights = this.lights.length;
 
 
     }
@@ -21,6 +31,8 @@ export default class Renderer {
         const gl = this.gl;
 		this.program = await this.loadShaders(vertexUrl, fragmentUrl);
         gl.useProgram(this.program);
+		gl.enable(gl.BLEND);
+		gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 
 		gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
 
@@ -29,10 +41,31 @@ export default class Renderer {
         gl.enable(gl.DEPTH_TEST);
         gl.frontFace(gl.CCW);
 
+
+		const lightPositions = [];
+		const lightColors     = [];
+		const lightIntensities = [];
+		const lightDistances = [];
+
+		for (let L of this.lights) {
+			lightPositions.push(...L.position);
+			lightColors.push(...L.color);
+			lightIntensities.push(L.intensity);
+			lightDistances.push(L.distance);
+		}
+
+
+		this.uNumLights      = gl.getUniformLocation(this.program, "uNumLights");
+		this.uPointLightPositions      = gl.getUniformLocation(this.program, "uPointLightPositions");
+		this.uPointLightColors         = gl.getUniformLocation(this.program, "uPointLightColors");
+		this.uPointLightIntensities    = gl.getUniformLocation(this.program, "uPointLightIntensities");
+		this.uPointLightDistances    = gl.getUniformLocation(this.program, "uPointLightDistances");
+
+
         this.uProj		= gl.getUniformLocation(this.program, "uProj");
         this.uView		= gl.getUniformLocation(this.program, "uView");
         this.uModel		= gl.getUniformLocation(this.program, "uModel");
-        this.uProj      = gl.getUniformLocation(this.program, "uProj");
+		this.uTransparency = gl.getUniformLocation(this.program, "uTransparency");
         this.uView      = gl.getUniformLocation(this.program, "uView");
         this.uModel     = gl.getUniformLocation(this.program, "uModel");
 		this.uNormal	= gl.getUniformLocation(this.program, "uNormal");
@@ -43,20 +76,34 @@ export default class Renderer {
         this.uShininess = gl.getUniformLocation(this.program, "uShininess");
         this.uSpecColor = gl.getUniformLocation(this.program, "uSpecColor");
 
+		const normalMatrix = mat3.create();
+		mat3.fromMat4(normalMatrix, this.model); // Start with model matrix
+		mat3.invert(normalMatrix, normalMatrix);       // Invert
+		mat3.transpose(normalMatrix, normalMatrix);    // Transpose
+		gl.uniformMatrix3fv(this.uNormal, false, normalMatrix);
+
+		gl.uniform1i(this.uNumLights, this.numLights);
+		gl.uniform3fv(this.uPointLightPositions, new Float32Array(lightPositions));
+		gl.uniform3fv(this.uPointLightColors, new Float32Array(lightColors));
+		gl.uniform1fv(this.uPointLightIntensities, new Float32Array(lightIntensities));
+		gl.uniform1fv(this.uPointLightDistances, new Float32Array(lightDistances));
+
 
         const aspect = gl.canvas.clientWidth / gl.canvas.clientHeight;
 		mat4.perspective(this.proj, 45 * Math.PI / 180, aspect, 0.1, 1000.0);
-        glMatrix.mat4.lookAt(this.view, [10, -16, 10], [0, 0, 0], [0, 1, 0]);
+        glMatrix.mat4.lookAt(this.view, this.camPos, [0, 0, 0], [0, 1, 0]);
         gl.uniformMatrix4fv(this.uProj, false, this.proj);
         gl.uniformMatrix4fv(this.uView, false, this.view);
-        gl.uniform3fv(this.uCamPos, [3, -15, 5]);
+        gl.uniform3fv(this.uCamPos, this.camPos);
         gl.uniform3fv(this.uLightDir, [0, 12.0, 10.0]);
         gl.uniform3fv(this.uLightColor, [1, 1, 1]);
         gl.uniform3fv(this.uAmbient, [0.3, 0.3, 0.3]);
         gl.uniform1f(this.uShininess, 31.0);
         gl.uniform3fv(this.uSpecColor, [1, 1, 1]);
+		gl.uniform1f(this.uTransparency, 1.0);
 
-
+		
+		console.log("uApplyFresnel =", this.uApplyFresnel);
 	}
 
     async loadShaders(vertexUrl, fragmentUrl) {
@@ -92,7 +139,6 @@ export default class Renderer {
     }
 
 
-	// shape = { vertices, normals, colors, buffers }
 
     addShape(shape) {
         this.shapes.push(shape);
@@ -102,13 +148,13 @@ export default class Renderer {
 		this.shapes.splice(shapeID, 1);
 	}
 
-    render(elapsed) {
+    render(elapsed, selectedID) {
         const gl = this.gl;
         gl.clearColor(0, 0, 0, 1);
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
 		//CAMERA ORBIT
-		let t = performance.now() * 0.001; // seconds
+		let t = performance.now() * 0.001;
 		let theta = t * this.camSpeed;
 		let phi = 0.6;
 
@@ -118,12 +164,47 @@ export default class Renderer {
 		let camZ = radius * Math.cos(phi) * Math.sin(theta);
 		let camY = radius * Math.sin(phi);
 
-		glMatrix.mat4.lookAt(this.view, [camX, camY, camZ], [0, 0, 0], [0, 1, 0] );
+		this.camPos = [camX, camY, camZ];
+
+
+		glMatrix.mat4.lookAt(this.view, this.camPos, [0, 0, 0], [0, 1, 0] );
 
         for (let shape of this.shapes) {
-            shape.draw(this.view, this.proj, elapsed);
+			gl.uniform1f(gl.getUniformLocation(this.program, "uTransparency"), shape.id === selectedID ? 0.4 : 1.0);
+
+			shape.draw(this.view, this.proj, elapsed);
         }
     }
+
+
+	makeRay(ndcX, ndcY){
+		const invVP = mat4.create();
+		mat4.multiply(invVP, this.proj, this.view);
+		mat4.invert(invVP, invVP);
+
+		const rayClip = vec4.fromValues(ndcX, ndcY, -1.0, 1.0);
+		const rayWorld = vec4.create();
+		vec4.transformMat4(rayWorld, rayClip, invVP);
+		vec3.scale(rayWorld, rayWorld, 1 / rayWorld[3]);
+
+		const origin = vec3.fromValues(this.camPos[0], this.camPos[1], this.camPos[2]);
+		const dir = vec3.normalize(vec3.create(), vec3.sub(vec3.create(), rayWorld, origin));
+		return { origin, dir };
+	}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 	setLightDirection([x,y,z]){
 		const gl = this.gl;

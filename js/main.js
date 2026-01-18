@@ -10,13 +10,19 @@ let renderer = null;
 let program = null;
 let gl = null;
 let spheres = [];
-
+export let currentSelection = -1;
+export let selectedID = -1;
+const canvas = document.getElementById("glCanvas");
 
 
 async function main(){
-	const canvas = document.getElementById("glCanvas");
+
+	setup_mouse_events("glCanvas");
 	renderer = new Renderer(canvas);
-	await renderer.init('./shaders/vertex.glsl', './shaders/fragment.glsl');
+	await renderer.init(
+    './shaders/vertex.glsl?v=' + Date.now(), 
+    './shaders/fragment.glsl?v=' + Date.now()
+	);
 
 	const ambCol = document.getElementById("ambCol");
 
@@ -41,7 +47,7 @@ async function main(){
 		const now = performance.now();
 		const dt = (now - last) / 1000;
 		last = now;
-		renderer.render(dt);
+		renderer.render(dt, selectedID);
 		requestAnimationFrame(loop);
 	}
 	loop();
@@ -72,22 +78,22 @@ function updateCamera() {
 
 
 
-App.updateTerrain = function(sphereID, terValues){
-	if (sphereID >= spheres.length || sphereID < 0) return;
-	spheres[sphereID].octaves = terValues.octaves;
-	spheres[sphereID].lacunarity = terValues.lacunarity;
-	spheres[sphereID].persistence = terValues.persistence;
-	spheres[sphereID].frequency = terValues.frequency;
-	spheres[sphereID].amplitude = terValues.amplitude;
+App.updateTerrain = function(terValues){
+	if (currentSelection >= spheres.length || currentSelection < 0) return;
+	spheres[currentSelection].octaves = terValues.octaves;
+	spheres[currentSelection].lacunarity = terValues.lacunarity;
+	spheres[currentSelection].persistence = terValues.persistence;
+	spheres[currentSelection].frequency = terValues.frequency;
+	spheres[currentSelection].amplitude = terValues.amplitude;
 
-	spheres[sphereID].construct();
-	spheres[sphereID].repaint(spheres[sphereID].values);
+	spheres[currentSelection].construct();
+	spheres[currentSelection].repaint(spheres[currentSelection].values);
 }
 
 
-App.updatePaint = function(sphereID, values){
-	if (spheres.length < sphereID) return;
-	spheres[sphereID].repaint(values);
+App.updatePaint = function(values){
+	if (spheres.length < currentSelection) return;
+	spheres[currentSelection].repaint(values);
 }
 
 function hexToVec(hex) {
@@ -112,13 +118,96 @@ App.createPlanet = function(radius, lat, lon, pos){
 	renderer.addShape(sphere);
 }
 
-App.killPlanet = function(sphereID){
-	if(!renderer || sphereID < 0 || sphereID >= spheres.length ) return;
+App.killPlanet = function(){
+	if(!renderer || currentSelection < 0 || currentSelection >= spheres.length ) return;
 	
-	console.log("removing planet "+ sphereID);
-	renderer.removeShape(sphereID);
-	spheres.splice(sphereID,1);
+	console.log("removing planet "+ currentSelection);
+	renderer.removeShape(currentSelection);
+	spheres.splice(currentSelection,1);
 }
+
+//Mouse code
+
+export function mouse_pressed(x, y){
+}
+
+export function mouse_moved(x, y){
+}
+
+export function mouse_released(x, y){
+	console.log("Mouse released at: ( " + x + " ,"+y+" )" );
+
+	let ndcCoords = toNDC(x,y,canvas);
+	let ray = renderer.makeRay(ndcCoords[0], ndcCoords[1]);
+	checkSpheres(ray.origin, ray.dir);
+
+}
+
+globalThis.mouse_pressed  = mouse_pressed;
+globalThis.mouse_moved    = mouse_moved;
+globalThis.mouse_released = mouse_released;
+
+
+
+function toNDC(x, y, canvas) {
+	if(!canvas) return;
+	const rect = canvas.getBoundingClientRect();
+
+	const ndcX = (x/ rect.width ) * 2 - 1;
+	const ndcY = -((y/ rect.height) * 2 - 1);
+	console.log(ndcX, ndcY);
+	return [ndcX, ndcY];
+}
+
+
+function checkSpheres(rayOrigin, rayDir){
+	let closest = Infinity;
+	let picked = null;
+
+	for (const s of spheres) {
+		const t = raySphereHit(rayOrigin, rayDir, s.position, s.radius);
+		if (t !== false && t < closest) {
+			closest = t;
+			picked = s;
+		}
+	}
+
+	if (picked) {
+		console.log("Picked sphere:", picked, "distance =", closest);
+		currentSelection = spheres.indexOf(picked);
+		selectedID = picked.id;
+		
+	}else{
+		currentSelection = -1;
+		selectedID = null;
+	}
+
+	
+
+}
+
+function raySphereHit(rayOrigin, rayDir, center, radius) {
+    const oc = vec3.create();
+    vec3.subtract(oc, rayOrigin, center);
+
+    const a = vec3.dot(rayDir, rayDir);
+    const b = 2.0 * vec3.dot(oc, rayDir);
+    const c = vec3.dot(oc, oc) - radius * radius;
+
+    const disc = b * b - 4 * a * c;
+
+    if (disc < 0) return false;
+
+    const sqrtDisc = Math.sqrt(disc);
+    const t1 = (-b - sqrtDisc) / (2 * a);
+    const t2 = (-b + sqrtDisc) / (2 * a);
+
+    const t = Math.min(t1, t2);
+    return t >= 0 ? t : false;
+}
+
+
+
 
 
 main();

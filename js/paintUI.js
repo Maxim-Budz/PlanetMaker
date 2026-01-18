@@ -1,5 +1,4 @@
 const typeSelect = document.getElementById("paintType");
-const sphereSelect = document.getElementById("sphereID");
 const configArea = document.getElementById("configArea");
 const paintBtn = document.getElementById("paintBtn");
 
@@ -257,7 +256,6 @@ function hexToVec(hex) {
 }
 
 function collectAndPaint() {
-	const sphereID = sphereSelect.value; 
 	const type = typeSelect.value;
 	const controls = configArea.querySelectorAll("input, select, textarea");
 	
@@ -294,6 +292,6 @@ function collectAndPaint() {
 
 	console.log(values);
 
-	App.updatePaint(sphereID, values);
+	App.updatePaint(values);
 }
 

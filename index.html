@@ -33,13 +33,6 @@
 			<div class="container">
 				<h2>Planet Options:</h2>
 
-
-			  <label>Planet Select:
-				  <input id="sphereID" type="number" min="0" step="1" value ="0">
-			  </label>
-
-
-
 			  <h3>Colour Options</h3>
 			  Select Style:
 			  <select id="paintType">
@@ -57,11 +50,14 @@
 			<input type="number" id="spawnRadius", min = 0, max = "100", step="1", value="2">
 			Position
 			<div class="smallContainer" id="spawnPos">
-				<input type="number" id="spawnX", min = "0", max="100", step="1", value="0">
-				<input type="number" id="spawnX", min = "0", max="100", step="1", value="0">
-				<input type="number" id="spawnX", min = "0", max="100", step="1", value="0">
+				<input type="number" id="spawnX", min = "-100", max="100", step="1", value="0">
+				<input type="number" id="spawnX", min = "-100", max="100", step="1", value="0">
+				<input type="number" id="spawnX", min = "-100", max="100", step="1", value="0">
 			</div>
-			Randomise<input type="checkbox" id="randomisePlanet" value="True">
+			<div class="smallContainer" id="randOpts">
+			Randomise<input type="checkbox" id="randomisePlanet">
+			Count<input type="number" id="randomSpawnAmount", min = "1", max ="100", step="1", value="1" >
+			</div>
 			<button id="newPlanet">Create New Planet</button>
 			<button id="killPlanet">Remove Planet</button>
 				<h3>Terrain Options</h3>
@@ -88,6 +84,50 @@
 
 	<script src="js/libs/toji-gl-matrix-accefb6/dist/gl-matrix-min.js"></script>
 	<script src="js/libs/noisejs-master/perlin.js"></script>
+
+	
+
+
+	<script>
+
+		let mouse_moving = false;
+
+
+		function mouse_down(e) {
+		  mouse_moving = true;
+		  if (typeof mouse_pressed === "function") {
+			mouse_pressed(e.offsetX, e.offsetY);
+		  }
+		}
+
+		function mouse_move(e) {
+		  if (!mouse_moving) return;
+		  if (typeof mouse_moved === "function") {
+
+			mouse_moved(e.offsetX, e.offsetY);
+		  }
+		}
+
+		function mouse_up(e) {
+		  if (!mouse_moving) return;
+		  mouse_moving = false;
+		  if (typeof mouse_released === "function") {
+			
+			mouse_released(e.offsetX, e.offsetY);
+		  }
+		}
+
+		function setup_mouse_events(id) {
+		  const can = document.getElementById(id);
+
+		  can.addEventListener("mousedown", mouse_down);
+		  can.addEventListener("mousemove", mouse_move);
+		  can.addEventListener("mouseup", mouse_up); 
+		}
+
+	</script>
+
+	
 	<script type="module" src="js/main.js"></script>
 	<script type="module" src="js/paintUI.js"></script>
 	<script type="module" src="js/PlanetUI.js"></script>
@@ -96,5 +136,7 @@
 	<script type="module" src="js/Renderer.js"></script>
 	<script type="module" src="js/Cube.js"></script>
 	<script type="module" src="js/Sphere.js"></script>
+
+
 </body>
 </html>

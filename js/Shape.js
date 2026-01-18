@@ -5,6 +5,7 @@ export default class Shape {
     constructor(gl, program, renderer) {
 
 		this.gl = gl;
+		this.id = Date.now().toString(36) + Math.random().toString(36).substr(2);
         this.program = program;
 		this.renderer = renderer;
 
@@ -29,13 +30,11 @@ export default class Shape {
         this.vertexBuffer = null;
         this.normalBuffer = null;
         this.vertexCount = 0;
+
     }
 
     update() {
-        // Rebuild model matrix each frame
         mat4.identity(this.model);
-
-        // Order: scale → rotate → translate
         mat4.translate(this.model, this.model, this.position);
         mat4.rotateX(this.model, this.model, this.rotation[0]);
         mat4.rotateY(this.model, this.model, this.rotation[1]);

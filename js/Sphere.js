@@ -9,6 +9,7 @@ export default class Sphere extends Shape {
 		this.latSeg = latSeg;
 		this.lonSeg = lonSeg;
 		this.radius = radius;
+	
 
 
 		//default paint of the sphere
@@ -64,7 +65,7 @@ export default class Sphere extends Shape {
 					y = this.vertices[q+1];
 					z = this.vertices[q+2];
 					this.vertices.push(x, y, z);
-					this.normals.push(x/len, y/len, z/len);
+					//this.normals.push(x/len, y/len, z/len);
 
 
 				}else{
@@ -79,14 +80,14 @@ export default class Sphere extends Shape {
 					x = nx * finalRadius;
 					y = ny * finalRadius;
 					z = nz * finalRadius;
-
 					this.vertices.push(x, y, z);
-					this.normals.push(x/len, y/len, z/len);
+
+					//this.normals.push(x/len, y/len, z/len);
 				}
-
-
 			}
 		}
+
+
 		const indices = [];
 		for (let lat = 0; lat < this.latSeg; lat++) {
 			for (let lon = 0; lon < this.lonSeg; lon++) {
@@ -98,15 +99,57 @@ export default class Sphere extends Shape {
 			}
 		}
 
-		
-        this.vertexCount = this.vertices.length;
+		//calculate normals
+		this.normals = new Float32Array(this.vertices.length);
+
+		for (let t = 0; t < indices.length; t += 3) {
+        const i0 = indices[t] * 3;
+        const i1 = indices[t + 1] * 3;
+        const i2 = indices[t + 2] * 3;
+
+        const v0 = [this.vertices[i0], this.vertices[i0 + 1], this.vertices[i0 + 2]];
+        const v1 = [this.vertices[i1], this.vertices[i1 + 1], this.vertices[i1 + 2]];
+        const v2 = [this.vertices[i2], this.vertices[i2 + 1], this.vertices[i2 + 2]];
+
+
+        const e0 = [v1[0] - v0[0], v1[1] - v0[1], v1[2] - v0[2]];
+        const e1 = [v2[0] - v0[0], v2[1] - v0[1], v2[2] - v0[2]];
+
+        let fn = cross(e0[0], e0[1], e0[2], e1[0], e1[1], e1[2]);
+        fn = normalize(fn[0], fn[1], fn[2]);
+
+        this.normals[i0]     += fn[0];
+        this.normals[i0 + 1] += fn[1];
+        this.normals[i0 + 2] += fn[2];
+
+        this.normals[i1]     += fn[0];
+        this.normals[i1 + 1] += fn[1];
+        this.normals[i1 + 2] += fn[2];
+		this.normals[i2]     += fn[0];
+        this.normals[i2 + 1] += fn[1];
+        this.normals[i2 + 2] += fn[2];
+		}
+		console.log(this.normals);
+
+		for (let i = 0; i < this.normals.length; i += 3) {
+			const n = normalize(this.normals[i], this.normals[i + 1], this.normals[i + 2]);
+			this.normals[i] = n[0];
+			this.normals[i + 1] = n[1];
+			this.normals[i + 2] = n[2];
+		}
+
+		this.vertexCount = this.vertices.length;
 		this.indices = indices;
-		//avoid re-painting initially
-		if (!this.init){
+		console.log(this.normals);
+
+
+		// Paint initial colors
+		if (!this.init) {
 			this.colors = this.paint(this.values);
 			this.init = true;
 		}
 	}
+
 
 	repaint(values){
 		this.values = values;
@@ -280,3 +323,16 @@ function ocean(br, bg, bb, bands, turbulenceStrength, cloudStrength, vertices, s
 
 }
 
+
+function cross(ax, ay, az, bx, by, bz) {
+	return [
+		ay * bz - az * by,
+		az * bx - ax * bz,
+		ax * by - ay * bx
+	];
+}
+
+function normalize(x, y, z) {
+	const len = Math.hypot(x, y, z);
+	return len === 0 ? [0, 0, 0] : [x / len, y / len, z / len];
+}
