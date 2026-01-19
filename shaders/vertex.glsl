@@ -4,7 +4,6 @@ attribute vec3 aPosition;
 attribute vec3 aNormal;
 
 varying vec3 vColor;
-varying float vDepth;
 
 uniform mat4 uProj;
 uniform mat4 uView;
@@ -24,6 +23,5 @@ void main(void) {
 
 	gl_Position = uProj * uView * worldPos;
 
-	vDepth = distance(worldPos.xyz, uCamPos);
 	vColor = aColor;
 }

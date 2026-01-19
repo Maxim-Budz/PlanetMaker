@@ -5,21 +5,16 @@ export default class Sphere extends Shape {
     constructor(gl, program, renderer, radius, latSeg, lonSeg) {
 		super(gl, program, renderer);
         
-
 		this.latSeg = latSeg;
 		this.lonSeg = lonSeg;
 		this.radius = radius;
-	
 
-
-		//default paint of the sphere
-		this.values = {};
-
-		this.values.colors = [0.145, 0.321, 0.678, 0.745, 0.678, 0.420, 0.173, 0.321, 0.157];
-		this.values.thresholds = [3.76, 3.77, 3.9];
-		this.values.capCol = [0.698, 0.698, 0.698];
-		this.values.capSize = 0.2;
-		this.values.type = "Terrain";
+		this.paintValues = {};
+		this.paintValues.colors = [0.145, 0.321, 0.678, 0.745, 0.678, 0.420, 0.173, 0.321, 0.157];
+		this.paintValues.thresholds = [0.4, 0.7, 1.0];
+		this.paintValues.capCol = [0.698, 0.698, 0.698];
+		this.paintValues.capSize = 0.2;
+		this.paintValues.type = "Terrain";
 
 
 		this.frequency = 0.5;
@@ -32,14 +27,58 @@ export default class Sphere extends Shape {
 
 
 	}
+
+	constructBasic(){
+		this.vertices = [];
+		this.normals = [];
+		this.edges = [];
+		this.uvs = [];
+
+
+		for (let i = 0; i <= this.latSeg; i++){
+
+			const theta = i * Math.PI / this.latSeg;
+			const sinTheta = Math.sin(theta);
+			const cosTheta = Math.cos(theta);
+
+			for (let j = 0; j <= this.lonSeg; j++){
+				const phi = j * 2 * Math.PI / this.lonSeg;
+				const sinPhi = Math.sin(phi);
+				const cosPhi = Math.cos(phi);
+
+				const x = cosPhi * sinTheta;
+				const y = cosTheta;
+				const z = sinPhi * sinTheta;
+
+				this.vertices.push(this.radius * x, this.radius * y, this.radius * z);
+				this.normals.push(x, y, z);
+				this.uvs.push(j / this.lonSeg, i / this.latSeg);
+
+			}
+		}
+
+		for (let lat = 0; lat < this.latSeg; lat++) {
+			for (let lon = 0; lon < this.lonSeg; lon++) {
+
+				const first = lat * (this.lonSeg + 1) + lon;
+				const second = first + this.lonSeg + 1;
+
+				this.indices.push(first, second, first + 1);
+				this.indices.push(second, second + 1, first + 1);
+			}
+		}
+	}
+
 	construct(){
-		if (this.vertices.length >0){
+		if (this.vertices.length > 0){
 			this.vertices = [];
 			this.normals = [];
 			this.colors = [];
 			this.edges = [];
 			
 		}
+
+		// 1) generate vertices
 		for (let i = 0; i <= this.latSeg; i++){
 			const theta = i * Math.PI / this.latSeg;
 			for (let j = 0; j <= this.lonSeg; j++){
@@ -65,11 +104,8 @@ export default class Sphere extends Shape {
 					y = this.vertices[q+1];
 					z = this.vertices[q+2];
 					this.vertices.push(x, y, z);
-					//this.normals.push(x/len, y/len, z/len);
-
 
 				}else{
-
 					const terrainScale=1.0;
 
 					h = (h + 1) * 0.5;
@@ -81,13 +117,11 @@ export default class Sphere extends Shape {
 					y = ny * finalRadius;
 					z = nz * finalRadius;
 					this.vertices.push(x, y, z);
-
-					//this.normals.push(x/len, y/len, z/len);
 				}
 			}
 		}
-
-
+		
+		//2) generate indices
 		const indices = [];
 		for (let lat = 0; lat < this.latSeg; lat++) {
 			for (let lon = 0; lon < this.lonSeg; lon++) {
@@ -99,7 +133,7 @@ export default class Sphere extends Shape {
 			}
 		}
 
-		//calculate normals
+		//3) generate normals
 		this.normals = new Float32Array(this.vertices.length);
 
 		for (let t = 0; t < indices.length; t += 3) {
@@ -129,7 +163,6 @@ export default class Sphere extends Shape {
         this.normals[i2 + 1] += fn[1];
         this.normals[i2 + 2] += fn[2];
 		}
-		console.log(this.normals);
 
 		for (let i = 0; i < this.normals.length; i += 3) {
 			const n = normalize(this.normals[i], this.normals[i + 1], this.normals[i + 2]);
@@ -140,19 +173,18 @@ export default class Sphere extends Shape {
 
 		this.vertexCount = this.vertices.length;
 		this.indices = indices;
-		console.log(this.normals);
+		
 
-
-		// Paint initial colors
+		//paint initial colors
 		if (!this.init) {
-			this.colors = this.paint(this.values);
+			this.colors = this.paint(this.paintValues);
 			this.init = true;
 		}
 	}
 
 
 	repaint(values){
-		this.values = values;
+		this.paintValues = values;
 		this.colors = this.paint(values);
 	}
 

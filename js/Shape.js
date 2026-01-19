@@ -9,7 +9,6 @@ export default class Shape {
         this.program = program;
 		this.renderer = renderer;
 
-        // Transform properties
         this.position = [0, 0, 0];
         this.rotation = [0, 0, 0];
         this.scale = [1, 1, 1];
@@ -17,18 +16,17 @@ export default class Shape {
 		this.rotationSpeed = [0,0,0];
 		this.animated = false;
 
-        // Model matrix
         this.model = mat4.create();
 
 		this.vertices	= [];
 		this.colors		= [];
 		this.normals	= [];
+		this.uvs		= null;
+		this.indices	= null;
 
-		this.indices = null;
-
-        // Buffers you fill in subclasses
         this.vertexBuffer = null;
         this.normalBuffer = null;
+		this.colorBuffer = null;
         this.vertexCount = 0;
 
     }
@@ -90,8 +88,6 @@ export default class Shape {
         gl.enableVertexAttribArray(posLoc);
         gl.vertexAttribPointer(posLoc, 3, gl.FLOAT, false, 0, 0);
 
-
-
 		const normLoc = gl.getAttribLocation(this.program, "aNormal");
         gl.enableVertexAttribArray(normLoc);
 
@@ -110,6 +106,10 @@ export default class Shape {
 			gl.bindBuffer(gl.ARRAY_BUFFER, this.colorBuffer);
 			gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.colors), gl.STATIC_DRAW);
 			gl.vertexAttribPointer(colorLoc, 3, gl.FLOAT, false, 0, 0);
+		}
+
+		if(this.uvs.length > 0){
+			const uvLoc = gl.getAttribLocation(this.program, "")
 		}
 		
 

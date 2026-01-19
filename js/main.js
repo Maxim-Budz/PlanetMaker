@@ -14,26 +14,42 @@ export let currentSelection = -1;
 export let selectedID = -1;
 const canvas = document.getElementById("glCanvas");
 
+async function init(){
+    gl = canvas.getContext("webgl2");
+    if (!this.gl) throw "WebGL2 not supported";
+	setup_mouse_events("glCanvas");
+	renderer = new Renderer(gl);
+	shaderManager = new ShaderManager(gl);
+
+	//loading shaders
+
+    ShaderManager.load("defaultShader",
+        await loadText('./shaders/vertex.glsl?v=' + Date.now());
+        await loadText('./shaders/fragment.glsl?v=' + Date.now());
+
+    ShaderManager.load("starShader",
+        await loadText('./shaders/star/starVertex.glsl?v=' + Date.now()),
+        await loadText('./shaders/star/starFragment.glsl?v=' + Date.now());
+
+	renderer.addShader("default", defaultShader);
+
+	
+}
+
 
 async function main(){
 
 	setup_mouse_events("glCanvas");
 	renderer = new Renderer(canvas);
 	await renderer.init(
-    './shaders/vertex.glsl?v=' + Date.now(), 
     './shaders/fragment.glsl?v=' + Date.now()
 	);
 
 	const ambCol = document.getElementById("ambCol");
-
-	const lx = document.getElementById("lx");
-	const ly = document.getElementById("ly");
-	const lz = document.getElementById("lz");
-
 	const camSpeed = document.getElementById("camSpeed");
 	const zoom = document.getElementById("zoom");
+
 	ambCol.addEventListener("input", updateAmbient);
-	[lx, ly, lz].forEach(s => s.addEventListener("input", updateLight));
 	[camSpeed,zoom].forEach(s => s.addEventListener("input", updateCamera));
 
 	program = renderer.program;
@@ -53,30 +69,16 @@ async function main(){
 	loop();
 }
 
-
-function updateLight() {
-	if(!renderer) return;
-    renderer.setLightDirection([
-        parseFloat(lx.value),
-        parseFloat(ly.value),
-        parseFloat(lz.value)
-    ]);
-}
-
-
 function updateAmbient() {
 	if(!renderer) return;
     renderer.setAmbientColor(hexToVec(ambCol.value));
 }
-
 
 function updateCamera() {
 	if(!renderer) return;
 	renderer.camSpeed = parseFloat(camSpeed.value);
 	renderer.camHeight = parseFloat(zoom.value);
 }
-
-
 
 App.updateTerrain = function(terValues){
 	if (currentSelection >= spheres.length || currentSelection < 0) return;
@@ -126,7 +128,7 @@ App.killPlanet = function(){
 	spheres.splice(currentSelection,1);
 }
 
-//Mouse code
+//Mouse & selecting code
 
 export function mouse_pressed(x, y){
 }
@@ -135,19 +137,14 @@ export function mouse_moved(x, y){
 }
 
 export function mouse_released(x, y){
-	console.log("Mouse released at: ( " + x + " ,"+y+" )" );
-
 	let ndcCoords = toNDC(x,y,canvas);
 	let ray = renderer.makeRay(ndcCoords[0], ndcCoords[1]);
 	checkSpheres(ray.origin, ray.dir);
-
 }
 
 globalThis.mouse_pressed  = mouse_pressed;
 globalThis.mouse_moved    = mouse_moved;
 globalThis.mouse_released = mouse_released;
-
-
 
 function toNDC(x, y, canvas) {
 	if(!canvas) return;
@@ -155,7 +152,6 @@ function toNDC(x, y, canvas) {
 
 	const ndcX = (x/ rect.width ) * 2 - 1;
 	const ndcY = -((y/ rect.height) * 2 - 1);
-	console.log(ndcX, ndcY);
 	return [ndcX, ndcY];
 }
 
@@ -173,10 +169,8 @@ function checkSpheres(rayOrigin, rayDir){
 	}
 
 	if (picked) {
-		console.log("Picked sphere:", picked, "distance =", closest);
 		currentSelection = spheres.indexOf(picked);
 		selectedID = picked.id;
-		
 	}else{
 		currentSelection = -1;
 		selectedID = null;
