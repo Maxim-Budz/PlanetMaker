@@ -12,22 +12,25 @@ export default class Renderer {
         this.proj = glMatrix.mat4.create();
 
 
-
 		this.camSpeed = 1.0;
 		this.camHeight = 10.0;
 		this.camPos = [10, -16, 10];
 
+		this.focusPoint = [0,0,0];
+
 		this.aspect = gl.canvas.clientWidth / gl.canvas.clientHeight;
 		mat4.perspective(this.proj, 45 * Math.PI / 180, this.aspect, 0.1, 1000.0);
         glMatrix.mat4.lookAt(this.view, this.camPos, [0, 0, 0], [0, 1, 0]);
-
+		
+		this.ambient = [0.1,0.1,0.1];
 		
 		this.pointLights = [
-			{ position:[7,7,7], color:[1.0,0.0,0.0], intensity:1.0, distance:100.0},
-			{ position:[-4,2,-4], color:[0.0,1.0,0.0], intensity:0.7, distance:7.0},
-			{ position:[4,6,-4], color:[0.0,0.0,1.0], intensity:0.8, distance: 30.0},  
-			{ position:[-4,0,4], color:[1.0,1.0,1.0], intensity:0.5, distance: 30.0},  
+			//{ position:[7,7,7], color:[1.0,0.0,0.0], intensity:1.0, distance:100.0},
+			//{ position:[-4,2,-4], color:[0.0,1.0,0.0], intensity:0.7, distance:7.0},
+			//{ position:[4,6,-4], color:[0.0,0.0,1.0], intensity:0.8, distance: 30.0},  
+			//{ position:[-4,0,4], color:[1.0,1.0,1.0], intensity:0.5, distance: 30.0},  
 		];
+
 		this.lightPositions = [];
 		this.lightColors     = [];
 		this.lightIntensities = [];
@@ -41,9 +44,9 @@ export default class Renderer {
 		}
 
 		this.normalMatrix = mat3.create();
-		mat3.fromMat4(this.normalMatrix, this.model); // Start with model matrix
-		mat3.invert(this.normalMatrix, this.normalMatrix);       // Invert
-		mat3.transpose(this.normalMatrix, this.normalMatrix);    // Transpose
+		mat3.fromMat4(this.normalMatrix, this.model);
+		mat3.invert(this.normalMatrix, this.normalMatrix);
+		mat3.transpose(this.normalMatrix, this.normalMatrix);
 
 
 		this.numLights = this.pointLights.length;
@@ -59,7 +62,7 @@ export default class Renderer {
 		this.shaderManager.apply(shaderName, "uCamPos", this.camPos);
 		this.shaderManager.apply(shaderName, "uTime", performance.now() * 0.001);
 		this.shaderManager.apply(shaderName, "uNormal", this.normalMatrix);
-		this.shaderManager.apply(shaderName, "uAmbient", [0.3,0.3,0.3]);
+		this.shaderManager.apply(shaderName, "uAmbient", this.ambient);
 
 		this.shaderManager.apply(shaderName, "uNumLights", this.pointLights.length);
 		this.shaderManager.apply(shaderName, "uPointLightPositions",new Float32Array(this.lightPositions)); 
@@ -76,9 +79,23 @@ export default class Renderer {
         this.shapes.push(shape);
     }
 
+
+
 	removeShape(shapeIndex){
 		this.shapes.splice(shapeIndex, 1);
 	}
+
+
+
+	addPointLight(pos, color, intensity, maxDist ){
+		this.pointLights.push({ position:pos, color:color, intensity:intensity, distance:maxDist});
+		this.lightPositions.push(...pos);
+		this.lightColors.push(...color);
+		this.lightIntensities.push(intensity);
+		this.lightDistances.push(maxDist);
+
+	}
+
 
 	render(elapsed, selectedID){
 		const gl = this.gl;
@@ -92,22 +109,41 @@ export default class Renderer {
 		let camX = radius * Math.cos(phi) * Math.cos(theta);
 		let camZ = radius * Math.cos(phi) * Math.sin(theta);
 		let camY = radius * Math.sin(phi);
-		this.camPos = [camX, camY, camZ];
-		glMatrix.mat4.lookAt(this.view, this.camPos, [0, 0, 0], [0, 1, 0] );
+		this.camPos = [this.focusPoint[0] + camX, this.focusPoint[1] + camY, this.focusPoint[2] + camZ];
+
+		glMatrix.mat4.lookAt(this.view, this.camPos, this.focusPoint, [0, 1, 0] );
 
 		//for each shader, render the objects that use it
 		for (const shaderName in this.shaderManager.programs){
-			gl.useProgram(this.shaderManager.programs[shaderName].program);
-			
+			gl.useProgram(this.shaderManager.programs[shaderName].program);			
 			this.setFrameUniforms(shaderName);
+
 			//TODO put shapes in scene class that will be made soon
 			for (const shape of this.shapes.filter(s => s.shader.name === shaderName)){
-				//this.shaderManager.applyShapeUniforms(shape);
+				
+				this.shaderManager.applyShapeUniforms(shape);
 				//apply select filter
 				this.shaderManager.apply(shape.shader.name, "uTransparency", shape.id === selectedID ? 0.4 : 1.0);
+
 				gl.bindVertexArray(shape.vao);
+				if (shape.texture) {
+					if (!(shape.texture instanceof WebGLTexture)) {
+					//	console.error("Error: shape.texture is not a WebGLTexture object!", shape.texture);
+					} else {
+						gl.activeTexture(gl.TEXTURE0);
+						gl.bindTexture(gl.TEXTURE_2D, shape.texture);
+						
+						//const err = gl.getError();
+						//if (err) console.error("GL ERROR at bind texture:", err, "Shape ID:", shape.id);
+						
+						this.shaderManager.apply(shaderName, "uTexture", 0);
+					}
+				}
+
 
 				shape.draw(elapsed);
+
+				gl.bindVertexArray(null);
 			}
 		}
 	}
@@ -128,15 +164,16 @@ export default class Renderer {
 		return { origin, dir };
 	}
 
-	addPointLight(pos, color, intensity, maxDist ){
-		this.pointLights.push({ position:pos, color:color, intensity:intensity, distance:maxDist});
-	}
 
 	setAmbientColor([r,g,b]){
-		const gl = this.gl;
-		console.log([r,g,b]);
-		gl.uniform3fv(this.uAmbient, [r, g, b]);
+		this.ambient = [r, g, b];
 	}
 
 }
 
+function checkGL(gl, where) {
+    const err = gl.getError();
+    if (err !== gl.NO_ERROR) {
+        console.error("GL ERROR at", where, err);
+    }
+}

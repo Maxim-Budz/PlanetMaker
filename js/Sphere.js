@@ -22,9 +22,15 @@ export default class Sphere extends Shape {
 		this.octaves = 3;
 		this.lacunarity = 1.8;
 		this.persistence = 0.5;
+
+
 		
 		this.init = false;
-		this.construct();
+		if(shaderName == "starShader"){
+			this.constructBasic()
+		}else{
+			this.construct();
+		}
 
 
 	}
@@ -34,9 +40,16 @@ export default class Sphere extends Shape {
 		this.normals = [];
 		this.edges = [];
 		this.uvs = [];
+		
+		//top pole
+		for (let j = 0; j <= this.lonSeg; j++) {
+			this.vertices.push(0, this.radius, 0);
+			this.normals.push(0, 1, 0);
+			this.uvs.push(j / this.lonSeg, 0);
+		}
+		//middle poles
 
-
-		for (let i = 0; i <= this.latSeg; i++){
+		for (let i = 1; i < this.latSeg; i++){
 
 			const theta = i * Math.PI / this.latSeg;
 			const sinTheta = Math.sin(theta);
@@ -53,9 +66,18 @@ export default class Sphere extends Shape {
 
 				this.vertices.push(this.radius * x, this.radius * y, this.radius * z);
 				this.normals.push(x, y, z);
-				this.uvs.push(j / this.lonSeg, i / this.latSeg);
+				let u = j / this.lonSeg;
+				if (j === this.lonSeg) u = 1.0;
+				this.uvs.push(u, i / this.latSeg);
 
 			}
+		}
+
+		//bottom pole
+		for (let j = 0; j <= this.lonSeg; j++) {
+			this.vertices.push(0, -this.radius, 0);
+			this.normals.push(0, -1, 0);
+			this.uvs.push(j / this.lonSeg, 1);
 		}
 
 		for (let lat = 0; lat < this.latSeg; lat++) {
@@ -68,8 +90,7 @@ export default class Sphere extends Shape {
 				this.indices.push(second, second + 1, first + 1);
 			}
 		}
-
-		this.refillAllBuffers();
+		this.refillBuffers();
 	}
 
 	construct(){
@@ -192,6 +213,9 @@ export default class Sphere extends Shape {
 
 
 	repaint(values){
+		console.log(this.paintValues);
+		console.log(values);
+		const gl = this.gl;
 		this.paintValues = values;
 		this.colors = this.paint(values);
 

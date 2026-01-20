@@ -1,6 +1,9 @@
 import Renderer from './Renderer.js';
+
 import ShaderManager from './ShaderManager.js';
 import ShaderProgram from './ShaderProgram.js';
+
+import TextureManager from './TextureManager.js';
 
 import Cube from './Cube.js';
 import Sphere from './Sphere.js';
@@ -10,6 +13,8 @@ const { mat4, vec3 } = glMatrix;
 
 let renderer = null;
 let shaderManager = null;
+let textureManager = null;
+
 let gl = null;
 let spheres = [];
 export let currentSelection = -1;
@@ -55,6 +60,13 @@ async function init(){
 
     gl.enable(gl.DEPTH_TEST);
     gl.enable(gl.CULL_FACE);
+
+	textureManager = new TextureManager(gl);
+	//TODO
+	textureManager.test();
+
+
+
 	
 }
 
@@ -72,6 +84,8 @@ async function main(){
 
 	App.createPlanet(3.5, 64, 64, [0,0,0]);
 	App.createPlanet(1.0, 32, 32, [4,4,4]);
+	//App.createStar(5, 32, 32, [10,-1,10], 1.0, [0.8,0.15,0.0]);
+	App.createStar(100, 32, 32, [70,10,100], 3.0, [0.9,0.01,0.0]);
 
 	let last = performance.now();
 	function loop() {
@@ -96,6 +110,7 @@ function updateCamera() {
 }
 
 App.updateTerrain = function(terValues){
+	console.log(terValues);
 	if (currentSelection >= spheres.length || currentSelection < 0) return;
 	spheres[currentSelection].octaves = terValues.octaves;
 	spheres[currentSelection].lacunarity = terValues.lacunarity;
@@ -104,12 +119,13 @@ App.updateTerrain = function(terValues){
 	spheres[currentSelection].amplitude = terValues.amplitude;
 
 	spheres[currentSelection].construct();
-	spheres[currentSelection].repaint(spheres[currentSelection].values);
+	spheres[currentSelection].repaint(spheres[currentSelection].paintValues);
 }
 
 
 App.updatePaint = function(values){
 	if (spheres.length < currentSelection) return;
+	console.log(values);
 	spheres[currentSelection].repaint(values);
 }
 
@@ -131,6 +147,31 @@ App.createPlanet = function(radius, lat, lon, pos){
 	spheres.push(sphere);
 	renderer.addShape(sphere);
 }
+
+
+
+App.createStar = function(radius, lat, lon, pos, glowStrength, glowColor){	
+
+	let sphere = new Sphere(gl, renderer,"starShader", shaderManager, radius, lat, lon);
+
+	sphere.uniforms["uGlowColor"] = glowColor;
+	sphere.uniforms["uGlowStrength"] = glowStrength;
+	//TODO
+	sphere.texture = textureManager.test_texture;
+	sphere.position = pos;
+
+
+	sphere.repaint({bands: 4, turbulence: 0.89, cloudStrength: 1,  colors: [0.7764705882352941, 0.27450980392156865, 0 ], type: "Ocean"});
+	//sphere.repaint({type: "Swirl", swirlStrength: 3,  colors: [[ 0.3607843137254902, 0.17647058823529413, 0.41568627450980394 ]]});
+	
+	spheres.push(sphere);
+
+	renderer.addShape(sphere);
+	renderer.addPointLight(pos, [1.0,1.0,1.0], glowStrength*10000.0, 252.0 + radius);
+
+}
+
+
 
 App.killPlanet = function(){
 	if(!renderer || currentSelection < 0 || currentSelection >= spheres.length ) return;
@@ -183,6 +224,7 @@ function checkSpheres(rayOrigin, rayDir){
 	if (picked) {
 		currentSelection = spheres.indexOf(picked);
 		selectedID = picked.id;
+		renderer.focusPoint = picked.position;
 	}else{
 		currentSelection = -1;
 		selectedID = null;
