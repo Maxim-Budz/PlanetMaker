@@ -1,4 +1,6 @@
-export default class ShaderManager(){
+import ShaderProgram from './ShaderProgram.js'
+
+export default class ShaderManager{
 	constructor(gl){		
         this.gl = gl;
 		this.programs = {};
@@ -9,13 +11,29 @@ export default class ShaderManager(){
 		return this.programs[name];  	
 	}
 
-//Loading & Compiling shader functions
-	async load(name, vertUrl, fragUrl) {
-		const {program, uniforms, attributes} = await compileAndReflect(gl, vertUrl, fragUrl);
-		this.programs[name] = new ShaderProgram(gl, program, uniforms, attributes);
+	applyShapeUniforms(shape){
+		for(let uniform in shape.uniforms){
+			this.apply(shape.shader.name, uniform, shape.uniforms[uniform]);
+		}
+
+	}
+	apply(programName, name, value) {
+		this.programs[programName].apply(name, value);
 	}
 
-	async compileAndReflect(gl, vertexUrl, fragmentUrl){
+
+
+	//Loading & Compiling shader functions
+	async load(name, vertUrl, fragUrl) {
+		const gl = this.gl;
+		console.log("loading...")
+		const {program, uniforms, attributes} = await this.compileAndReflect(vertUrl, fragUrl);
+		console.log("Loaded: ", program, uniforms, attributes);
+		this.programs[name] = new ShaderProgram(gl,name, program, uniforms, attributes);
+	}
+
+	async compileAndReflect(vertexUrl, fragmentUrl){
+		const gl = this.gl;
 
 		const program = await this.loadShaders(vertexUrl, fragmentUrl);
 
@@ -24,6 +42,7 @@ export default class ShaderManager(){
 
 		const attribCount = gl.getProgramParameter(program, gl.ACTIVE_ATTRIBUTES);
 		const uniformCount = gl.getProgramParameter(program, gl.ACTIVE_UNIFORMS);
+		console.log(uniformCount);
 
 
 		for (let i = 0; i < attribCount; i++) {
@@ -33,16 +52,30 @@ export default class ShaderManager(){
 
 		for (let i = 0; i < uniformCount; i++) {
 			const info = gl.getActiveUniform(program, i);
-			uniforms[info.name] = gl.getAttribLocation(program, info.name);
+			    let name = info.name;
+
+				const uniformMetadata = {
+						location: gl.getUniformLocation(program, name),
+						type: info.type,
+						size: info.size
+					};
+
+				if (name.endsWith("[0]")) {
+					name = name.slice(0, -3);
+				}
+
+			uniforms[name] = uniformMetadata;
 		}
+		console.log(uniforms);
 
 		return {program, uniforms, attributes}
 
 	}
 
-	async loadShaders(gl, vertexUrl, fragmentUrl) {
-        const vShader = await this.loadShader(gl, vertexUrl, gl.VERTEX_SHADER);
-        const fShader = await this.loadShader(gl, fragmentUrl, gl.FRAGMENT_SHADER);
+	async loadShaders(vertexUrl, fragmentUrl) {
+		const gl = this.gl;
+        const vShader = await this.loadShader(vertexUrl, gl.VERTEX_SHADER);
+        const fShader = await this.loadShader(fragmentUrl, gl.FRAGMENT_SHADER);
         const program = gl.createProgram();
 
         gl.attachShader(program, vShader);
@@ -56,8 +89,10 @@ export default class ShaderManager(){
         return program;
     }
 
-    async loadShader(gl, url, type) {
-        const res = await fetch(url);
+    async loadShader(url, type) {
+		const gl = this.gl;
+        const res = await fetch(url,  { cache: "no-store" });
+		
 		const src = await res.text();
         const shader = gl.createShader(type);
         gl.shaderSource(shader, src);
@@ -67,21 +102,5 @@ export default class ShaderManager(){
         }
         return shader;
     }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 }

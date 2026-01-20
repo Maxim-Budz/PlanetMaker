@@ -1,4 +1,6 @@
 import Renderer from './Renderer.js';
+import ShaderManager from './ShaderManager.js';
+import ShaderProgram from './ShaderProgram.js';
 
 import Cube from './Cube.js';
 import Sphere from './Sphere.js';
@@ -7,7 +9,7 @@ window.App = window.App || {};
 const { mat4, vec3 } = glMatrix;
 
 let renderer = null;
-let program = null;
+let shaderManager = null;
 let gl = null;
 let spheres = [];
 export let currentSelection = -1;
@@ -15,35 +17,51 @@ export let selectedID = -1;
 const canvas = document.getElementById("glCanvas");
 
 async function init(){
+
     gl = canvas.getContext("webgl2");
-    if (!this.gl) throw "WebGL2 not supported";
+
+    if (!gl) throw "WebGL2 not supported";
+
+	gl.enable(gl.BLEND);
+	gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+
+	gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+
+	gl.enable(gl.CULL_FACE);
+	gl.cullFace(gl.BACK);
+	gl.enable(gl.DEPTH_TEST);
+	gl.frontFace(gl.CCW);
+
+
 	setup_mouse_events("glCanvas");
+
 	renderer = new Renderer(gl);
 	shaderManager = new ShaderManager(gl);
 
 	//loading shaders
 
-    ShaderManager.load("defaultShader",
-        await loadText('./shaders/vertex.glsl?v=' + Date.now());
-        await loadText('./shaders/fragment.glsl?v=' + Date.now());
+    await shaderManager.load("defaultShader",
+        './shaders/vertex.glsl',
+        './shaders/fragment.glsl' 
+	);
 
-    ShaderManager.load("starShader",
-        await loadText('./shaders/star/starVertex.glsl?v=' + Date.now()),
-        await loadText('./shaders/star/starFragment.glsl?v=' + Date.now());
+    await shaderManager.load("starShader",
+        './shaders/Star/starVertex.glsl?',
+        './shaders/Star/starFragment.glsl'
+	);
 
-	renderer.addShader("default", defaultShader);
+	renderer.shaderManager = shaderManager;
 
+
+    gl.enable(gl.DEPTH_TEST);
+    gl.enable(gl.CULL_FACE);
 	
 }
 
 
 async function main(){
+	await init();
 
-	setup_mouse_events("glCanvas");
-	renderer = new Renderer(canvas);
-	await renderer.init(
-    './shaders/fragment.glsl?v=' + Date.now()
-	);
 
 	const ambCol = document.getElementById("ambCol");
 	const camSpeed = document.getElementById("camSpeed");
@@ -52,9 +70,6 @@ async function main(){
 	ambCol.addEventListener("input", updateAmbient);
 	[camSpeed,zoom].forEach(s => s.addEventListener("input", updateCamera));
 
-	program = renderer.program;
-	gl = renderer.gl;
-	
 	App.createPlanet(3.5, 64, 64, [0,0,0]);
 	App.createPlanet(1.0, 32, 32, [4,4,4]);
 
@@ -109,14 +124,11 @@ function hexToVec(hex) {
 }
 
 App.createPlanet = function(radius, lat, lon, pos){
-	if(!(gl && program && renderer)) return;
-	console.log("generating planet at " + pos);
-	console.log("with radius " +radius);
+	if(!(gl && shaderManager && renderer)) return;
 
-	let sphere = new Sphere(gl, program, renderer, radius, lat, lon);
+	let sphere = new Sphere(gl, renderer,"defaultShader", shaderManager, radius, lat, lon);
 	sphere.position = pos;
 	spheres.push(sphere);
-	sphere.construct();
 	renderer.addShape(sphere);
 }
 

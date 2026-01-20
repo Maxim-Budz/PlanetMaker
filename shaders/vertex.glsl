@@ -13,7 +13,6 @@ uniform mat3 uNormal;
 
 varying vec3 vPosition;
 varying vec3 vNormal;
-uniform vec3 uCamPos;
 
 void main(void) {
 	gl_PointSize = 5.0;

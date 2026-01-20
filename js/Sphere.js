@@ -2,8 +2,8 @@ import Shape from './Shape.js';
 const { mat4, vec3 } = glMatrix;
 
 export default class Sphere extends Shape {
-    constructor(gl, program, renderer, radius, latSeg, lonSeg) {
-		super(gl, program, renderer);
+    constructor(gl, renderer, shaderName, shaderManager, radius, latSeg, lonSeg) {
+		super(gl, renderer, shaderName, shaderManager);
         
 		this.latSeg = latSeg;
 		this.lonSeg = lonSeg;
@@ -24,6 +24,7 @@ export default class Sphere extends Shape {
 		this.persistence = 0.5;
 		
 		this.init = false;
+		this.construct();
 
 
 	}
@@ -67,6 +68,8 @@ export default class Sphere extends Shape {
 				this.indices.push(second, second + 1, first + 1);
 			}
 		}
+
+		this.refillAllBuffers();
 	}
 
 	construct(){
@@ -180,12 +183,21 @@ export default class Sphere extends Shape {
 			this.colors = this.paint(this.paintValues);
 			this.init = true;
 		}
+
+		//Add data to buffers
+		this.refillBuffers();
+		this.rebindBuffers();
+
 	}
 
 
 	repaint(values){
 		this.paintValues = values;
 		this.colors = this.paint(values);
+
+		gl.bindBuffer(gl.ARRAY_BUFFER, this.colorBuffer);
+		gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.colors), gl.STATIC_DRAW);			
+
 	}
 
 
