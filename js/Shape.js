@@ -141,48 +141,25 @@ export default class Shape {
 
 
 
-
-
-
-
-
 	draw(elapsed) {
-        const gl = this.gl;
-        gl.useProgram(this.shader.program);
-		gl.bindVertexArray(this.vao);
-		gl.enable(gl.DEPTH_TEST);
+		const gl = this.gl;
+		if (!this.shader || !this.shader.program) return;
 
-		this.refillBuffers();
-
-        mat4.identity(this.model);
-        mat4.translate(this.model, this.model, this.position);
-
-		if (this.animated){
-			
-			this.rotation[0] += this.rotationSpeed[0] * elapsed;
-			this.rotation[1] += this.rotationSpeed[1] * elapsed;
-			this.rotation[2] += this.rotationSpeed[2] * elapsed;
-
-			mat4.rotateX(this.model, this.model, this.rotation[0]);
-			mat4.rotateY(this.model, this.model, this.rotation[1]);
-			mat4.rotateZ(this.model, this.model, this.rotation[2]);
-		}
+		gl.useProgram(this.shader.program);
+		gl.bindVertexArray(this.vao); 
 		
-		const normalMat = mat3.create();
-		mat3.normalFromMat4(normalMat, this.model);
+		mat4.identity(this.model);
+		mat4.translate(this.model, this.model, this.position);
 
-
-        this.shaderManager.apply(this.shader.name,"uModel", this.model);
-		this.shaderManager.apply(this.shader.name,"uNormal", normalMat);
-
-
-		if (this.indices.length > 0) {
-			gl.drawArrays(gl.TRIANGLES, 0, this.vertexCount);
-			//gl.drawElements(gl.TRIANGLES, this.indices.length, gl.UNSIGNED_SHORT, 0);
-			//gl.drawElements(gl.LINES, this.indices.length, gl.UNSIGNED_SHORT, 0);
+		const indexCount = this.indices.length;
+		this.shaderManager.apply(this.shader.name, "uModel", this.model);
+		if (indexCount > 0) {
+			gl.drawElements(gl.TRIANGLES, indexCount, gl.UNSIGNED_SHORT, 0);
+			gl.drawElements(gl.LINES, this.indices.length, gl.UNSIGNED_SHORT, 0);
 		} else {
-			gl.drawArrays(gl.TRIANGLES, 0, this.vertexCount/3);
+			console.warn("No indices found, attempting drawArrays");
+			gl.drawArrays(gl.TRIANGLES, 0, this.vertices.length / 3);
 		}
-    }
+	}
 }
 

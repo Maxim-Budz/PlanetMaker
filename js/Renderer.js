@@ -53,17 +53,19 @@ export default class Renderer {
 	//loads the global values that is the same for all objects.
 	setFrameUniforms(shaderName) {
 
+
 		this.shaderManager.apply(shaderName, "uProj",  this.proj);
 		this.shaderManager.apply(shaderName, "uView",  this.view);
 		this.shaderManager.apply(shaderName, "uCamPos", this.camPos);
 		this.shaderManager.apply(shaderName, "uTime", performance.now() * 0.001);
 		this.shaderManager.apply(shaderName, "uNormal", this.normalMatrix);
+		this.shaderManager.apply(shaderName, "uAmbient", [0.3,0.3,0.3]);
 
 		this.shaderManager.apply(shaderName, "uNumLights", this.pointLights.length);
-		this.shaderManager.apply(shaderName, "uPointLightPositions[0]",new Float32Array(this.lightPositions)); 
-		this.shaderManager.apply(shaderName, "uPointLightColors[0]",new Float32Array(this.lightColors)); 
-		this.shaderManager.apply(shaderName, "uPointLightIntensities[0]",new Float32Array(this.lightIntensities)); 
-		this.shaderManager.apply(shaderName, "uPointLightDistances[0]",new Float32Array(this.lightDistances));
+		this.shaderManager.apply(shaderName, "uPointLightPositions",new Float32Array(this.lightPositions)); 
+		this.shaderManager.apply(shaderName, "uPointLightColors",new Float32Array(this.lightColors)); 
+		this.shaderManager.apply(shaderName, "uPointLightIntensities",new Float32Array(this.lightIntensities)); 
+		this.shaderManager.apply(shaderName, "uPointLightDistances",new Float32Array(this.lightDistances));
 
 	}
 

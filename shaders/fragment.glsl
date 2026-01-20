@@ -35,5 +35,4 @@ void main(void) {
 
     vec3 combinedLighting = diffuse + uAmbient;
 	gl_FragColor = vec4(vColor * combinedLighting, uTransparency);
-
 }
