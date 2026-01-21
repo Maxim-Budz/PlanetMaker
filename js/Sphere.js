@@ -86,8 +86,8 @@ export default class Sphere extends Shape {
 				const first = lat * (this.lonSeg + 1) + lon;
 				const second = first + this.lonSeg + 1;
 
-				this.indices.push(first, second, first + 1);
-				this.indices.push(second, second + 1, first + 1);
+				this.indices.push(first, first + 1, second);
+				this.indices.push(second, first + 1, second + 1);
 			}
 		}
 		this.refillBuffers();
@@ -213,11 +213,11 @@ export default class Sphere extends Shape {
 
 
 	repaint(values){
-		console.log(this.paintValues);
-		console.log(values);
 		const gl = this.gl;
 		this.paintValues = values;
+		console.log(this.colors);
 		this.colors = this.paint(values);
+		console.log(this.colors);
 
 		gl.bindBuffer(gl.ARRAY_BUFFER, this.colorBuffer);
 		gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.colors), gl.STATIC_DRAW);			

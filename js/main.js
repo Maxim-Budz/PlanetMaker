@@ -34,6 +34,7 @@ async function init(){
 
 	gl.enable(gl.CULL_FACE);
 	gl.cullFace(gl.BACK);
+
 	gl.enable(gl.DEPTH_TEST);
 	gl.frontFace(gl.CCW);
 
@@ -85,7 +86,13 @@ async function main(){
 	App.createPlanet(3.5, 64, 64, [0,0,0]);
 	App.createPlanet(1.0, 32, 32, [4,4,4]);
 	//App.createStar(5, 32, 32, [10,-1,10], 1.0, [0.8,0.15,0.0]);
-	App.createStar(100, 32, 32, [70,10,100], 3.0, [0.9,0.01,0.0]);
+	
+	App.createStar(60, 32, 32, [200,10,200], 3.0, [0.9,0.01,0.0], 
+		[1.0,0.0,0.0, 0.0,1.0,0.0, 0.0,0.0,1.0, 1.0,1.0,1.0]);
+
+	App.createStar(20, 32, 32, [-200,10,-200], 3.0, [8.0,8.0,1.0], 
+		[0.0,0.0,0.4, 0.2,0.3,0.8, 0.4,0.4,1.0, 1.0,1.0,1.0]);
+
 
 	let last = performance.now();
 	function loop() {
@@ -125,7 +132,6 @@ App.updateTerrain = function(terValues){
 
 App.updatePaint = function(values){
 	if (spheres.length < currentSelection) return;
-	console.log(values);
 	spheres[currentSelection].repaint(values);
 }
 
@@ -149,13 +155,15 @@ App.createPlanet = function(radius, lat, lon, pos){
 }
 
 
-
-App.createStar = function(radius, lat, lon, pos, glowStrength, glowColor){	
+//MAX 4 COLOURS
+App.createStar = function(radius, lat, lon, pos, glowStrength, glowColor, mainColors){	
 
 	let sphere = new Sphere(gl, renderer,"starShader", shaderManager, radius, lat, lon);
 
 	sphere.uniforms["uGlowColor"] = glowColor;
 	sphere.uniforms["uGlowStrength"] = glowStrength;
+	sphere.uniforms["uRadius"] = radius;
+	sphere.uniforms["uMainColors"] = new Float32Array(mainColors); 
 	//TODO
 	sphere.texture = textureManager.test_texture;
 	sphere.position = pos;
@@ -167,7 +175,7 @@ App.createStar = function(radius, lat, lon, pos, glowStrength, glowColor){
 	spheres.push(sphere);
 
 	renderer.addShape(sphere);
-	renderer.addPointLight(pos, [1.0,1.0,1.0], glowStrength*10000.0, 252.0 + radius);
+	renderer.addPointLight(pos, glowColor, glowStrength*100000.0, 252.0 + radius*radius);
 
 }
 
