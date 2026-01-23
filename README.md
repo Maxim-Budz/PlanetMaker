@@ -32,8 +32,9 @@ python3 -m http.server 8080
 - Improved terrain system
 - Shadows
 - Texture generation
-- Animated weather effects
+- Animated weather effects & planet atmosphere
 - Saving and loading scenes
+- Better skybox
 
 ## Libraries Used
 
