@@ -2,24 +2,19 @@ import Shape from './Shape.js';
 const { mat4, vec3 } = glMatrix;
 
 export default class Sphere extends Shape {
-    constructor(gl, program, renderer, radius, latSeg, lonSeg) {
-		super(gl, program, renderer);
+    constructor(gl, renderer, shaderName, shaderManager, radius, latSeg, lonSeg) {
+		super(gl, renderer, shaderName, shaderManager);
         
-
 		this.latSeg = latSeg;
 		this.lonSeg = lonSeg;
 		this.radius = radius;
-	
 
-
-		//default paint of the sphere
-		this.values = {};
-
-		this.values.colors = [0.145, 0.321, 0.678, 0.745, 0.678, 0.420, 0.173, 0.321, 0.157];
-		this.values.thresholds = [3.76, 3.77, 3.9];
-		this.values.capCol = [0.698, 0.698, 0.698];
-		this.values.capSize = 0.2;
-		this.values.type = "Terrain";
+		this.paintValues = {};
+		this.paintValues.colors = [0.145, 0.321, 0.678, 0.745, 0.678, 0.420, 0.173, 0.321, 0.157];
+		this.paintValues.thresholds = [0.4, 0.7, 1.0];
+		this.paintValues.capCol = [0.698, 0.698, 0.698];
+		this.paintValues.capSize = 0.2;
+		this.paintValues.type = "Terrain";
 
 
 		this.frequency = 0.5;
@@ -27,19 +22,94 @@ export default class Sphere extends Shape {
 		this.octaves = 3;
 		this.lacunarity = 1.8;
 		this.persistence = 0.5;
+
+
 		
 		this.init = false;
 
+		switch(shaderName){
+			case "defaultShader":
+				this.construct();
+				break;
+			case "starGlowShader":
+				this.constructIsoSphere();
+				break;
+			default:
+				this.constructBasic();
+				break;
+		}
+
 
 	}
+
+	constructBasic(){
+		this.vertices = [];
+		this.normals = [];
+		this.edges = [];
+		this.uvs = [];
+		
+		//top pole
+		for (let j = 0; j <= this.lonSeg; j++) {
+			this.vertices.push(0, this.radius, 0);
+			this.normals.push(0, 1, 0);
+			this.uvs.push(j / this.lonSeg, 0);
+		}
+		//middle poles
+
+		for (let i = 1; i < this.latSeg; i++){
+
+			const theta = i * Math.PI / this.latSeg;
+			const sinTheta = Math.sin(theta);
+			const cosTheta = Math.cos(theta);
+
+			for (let j = 0; j <= this.lonSeg; j++){
+				const phi = j * 2 * Math.PI / this.lonSeg;
+				const sinPhi = Math.sin(phi);
+				const cosPhi = Math.cos(phi);
+
+				const x = cosPhi * sinTheta;
+				const y = cosTheta;
+				const z = sinPhi * sinTheta;
+
+				this.vertices.push(this.radius * x, this.radius * y, this.radius * z);
+				this.normals.push(x, y, z);
+				let u = j / this.lonSeg;
+				if (j === this.lonSeg) u = 1.0;
+				this.uvs.push(u, i / this.latSeg);
+
+			}
+		}
+
+		//bottom pole
+		for (let j = 0; j <= this.lonSeg; j++) {
+			this.vertices.push(0, -this.radius, 0);
+			this.normals.push(0, -1, 0);
+			this.uvs.push(j / this.lonSeg, 1);
+		}
+
+		for (let lat = 0; lat < this.latSeg; lat++) {
+			for (let lon = 0; lon < this.lonSeg; lon++) {
+
+				const first = lat * (this.lonSeg + 1) + lon;
+				const second = first + this.lonSeg + 1;
+
+				this.indices.push(first, first + 1, second);
+				this.indices.push(second, first + 1, second + 1);
+			}
+		}
+		this.refillBuffers();
+	}
+
 	construct(){
-		if (this.vertices.length >0){
+		if (this.vertices.length > 0){
 			this.vertices = [];
 			this.normals = [];
 			this.colors = [];
 			this.edges = [];
 			
 		}
+
+		// 1) generate vertices
 		for (let i = 0; i <= this.latSeg; i++){
 			const theta = i * Math.PI / this.latSeg;
 			for (let j = 0; j <= this.lonSeg; j++){
@@ -65,11 +135,8 @@ export default class Sphere extends Shape {
 					y = this.vertices[q+1];
 					z = this.vertices[q+2];
 					this.vertices.push(x, y, z);
-					//this.normals.push(x/len, y/len, z/len);
-
 
 				}else{
-
 					const terrainScale=1.0;
 
 					h = (h + 1) * 0.5;
@@ -81,13 +148,11 @@ export default class Sphere extends Shape {
 					y = ny * finalRadius;
 					z = nz * finalRadius;
 					this.vertices.push(x, y, z);
-
-					//this.normals.push(x/len, y/len, z/len);
 				}
 			}
 		}
-
-
+		
+		//2) generate indices
 		const indices = [];
 		for (let lat = 0; lat < this.latSeg; lat++) {
 			for (let lon = 0; lon < this.lonSeg; lon++) {
@@ -99,7 +164,7 @@ export default class Sphere extends Shape {
 			}
 		}
 
-		//calculate normals
+		//3) generate normals
 		this.normals = new Float32Array(this.vertices.length);
 
 		for (let t = 0; t < indices.length; t += 3) {
@@ -129,7 +194,6 @@ export default class Sphere extends Shape {
         this.normals[i2 + 1] += fn[1];
         this.normals[i2 + 2] += fn[2];
 		}
-		console.log(this.normals);
 
 		for (let i = 0; i < this.normals.length; i += 3) {
 			const n = normalize(this.normals[i], this.normals[i + 1], this.normals[i + 2]);
@@ -140,20 +204,136 @@ export default class Sphere extends Shape {
 
 		this.vertexCount = this.vertices.length;
 		this.indices = indices;
-		console.log(this.normals);
+		
 
-
-		// Paint initial colors
+		//paint initial colors
 		if (!this.init) {
-			this.colors = this.paint(this.values);
+			this.colors = this.paint(this.paintValues);
 			this.init = true;
 		}
+
+		//Add data to buffers
+		this.refillBuffers();
+		this.rebindBuffers();
+
+	}
+
+	constructIsoSphere(){
+		const t = (1 + Math.sqrt(5)) / 2;
+		const radius = this.radius;
+
+		let subdivisions = 3;
+		
+		let positions = [
+			-1,  t,  0,   1,  t,  0,  -1, -t,  0,   1, -t,  0,
+			 0, -1,  t,   0,  1,  t,   0, -1, -t,   0,  1, -t,
+			 t,  0, -1,   t,  0,  1,  -t,  0, -1,  -t,  0,  1
+		];
+
+		let indices = [
+			0,11,5,  0,5,1,  0,1,7,  0,7,10, 0,10,11,
+			1,5,9,  5,11,4, 11,10,2, 10,7,6, 7,1,8,
+			3,9,4,  3,4,2,  3,2,6,  3,6,8,  3,8,9,
+			4,9,5,  2,4,11, 6,2,10, 8,6,7,  9,8,1
+		];
+
+		for (let i = 0; i < positions.length; i += 3) {
+			const x = positions[i];
+			const y = positions[i+1];
+			const z = positions[i+2];
+			const len = Math.hypot(x, y, z);
+			positions[i]   = (x / len) * radius;
+			positions[i+1] = (y / len) * radius;
+			positions[i+2] = (z / len) * radius;
+		}
+
+		const midpointCache = new Map();
+
+
+		
+		function getMidpoint(a, b) {
+			const key = a < b ? `${a}_${b}` : `${b}_${a}`;
+			if (midpointCache.has(key)) return midpointCache.get(key);
+
+			const ax = positions[a*3];
+			const ay = positions[a*3 + 1];
+			const az = positions[a*3 + 2];
+			const bx = positions[b*3];
+			const by = positions[b*3 + 1];
+			const bz = positions[b*3 + 2];
+
+			let mx = (ax + bx) * 0.5;
+			let my = (ay + by) * 0.5;
+			let mz = (az + bz) * 0.5;
+
+			const len = Math.hypot(mx, my, mz);
+			mx = (mx / len) * radius;
+			my = (my / len) * radius;
+			mz = (mz / len) * radius;
+
+			const index = positions.length / 3;
+			positions.push(mx, my, mz);
+			midpointCache.set(key, index);
+			return index;
+		}
+
+		
+		for (let i = 0; i < subdivisions; i++) {
+			const newIndices = [];
+			midpointCache.clear();
+
+			for (let j = 0; j < indices.length; j += 3) {
+				const a = indices[j];
+				const b = indices[j+1];
+				const c = indices[j+2];
+
+				const ab = getMidpoint(a, b);
+				const bc = getMidpoint(b, c);
+				const ca = getMidpoint(c, a);
+
+				newIndices.push(
+					a, ab, ca,
+					b, bc, ab,
+					c, ca, bc,
+					ab, bc, ca
+				);
+			}
+		indices = newIndices;
+		}		
+
+
+
+		const normals = [];
+		for (let i = 0; i < positions.length; i += 3) {
+			const x = positions[i];
+			const y = positions[i+1];
+			const z = positions[i+2];
+			const len = Math.hypot(x, y, z);
+			normals.push(x / len, y / len, z / len);
+		}
+
+		this.vertices = new Float32Array(positions);
+		this.normals = new Float32Array(normals);
+		this.indices = new Float32Array(indices);
+
+		this.refillBuffers();
+		this.rebindBuffers();
+
+
+
 	}
 
 
 	repaint(values){
-		this.values = values;
+		const gl = this.gl;
+		this.paintValues = values;
+		console.log(this.colors);
 		this.colors = this.paint(values);
+		console.log(this.colors);
+
+		gl.bindBuffer(gl.ARRAY_BUFFER, this.colorBuffer);
+		gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.colors), gl.STATIC_DRAW);			
+
 	}
 
 
