@@ -26,10 +26,17 @@ export default class Sphere extends Shape {
 
 		
 		this.init = false;
-		if(shaderName == "starShader"){
-			this.constructBasic()
-		}else{
-			this.construct();
+
+		switch(shaderName){
+			case "defaultShader":
+				this.construct();
+				break;
+			case "starGlowShader":
+				this.constructIsoSphere();
+				break;
+			default:
+				this.constructBasic();
+				break;
 		}
 
 
@@ -208,6 +215,111 @@ export default class Sphere extends Shape {
 		//Add data to buffers
 		this.refillBuffers();
 		this.rebindBuffers();
+
+	}
+
+	constructIsoSphere(){
+		const t = (1 + Math.sqrt(5)) / 2;
+		const radius = this.radius;
+
+		let subdivisions = 3;
+		
+		let positions = [
+			-1,  t,  0,   1,  t,  0,  -1, -t,  0,   1, -t,  0,
+			 0, -1,  t,   0,  1,  t,   0, -1, -t,   0,  1, -t,
+			 t,  0, -1,   t,  0,  1,  -t,  0, -1,  -t,  0,  1
+		];
+
+		let indices = [
+			0,11,5,  0,5,1,  0,1,7,  0,7,10, 0,10,11,
+			1,5,9,  5,11,4, 11,10,2, 10,7,6, 7,1,8,
+			3,9,4,  3,4,2,  3,2,6,  3,6,8,  3,8,9,
+			4,9,5,  2,4,11, 6,2,10, 8,6,7,  9,8,1
+		];
+
+		for (let i = 0; i < positions.length; i += 3) {
+			const x = positions[i];
+			const y = positions[i+1];
+			const z = positions[i+2];
+			const len = Math.hypot(x, y, z);
+			positions[i]   = (x / len) * radius;
+			positions[i+1] = (y / len) * radius;
+			positions[i+2] = (z / len) * radius;
+		}
+
+		const midpointCache = new Map();
+
+
+		
+		function getMidpoint(a, b) {
+			const key = a < b ? `${a}_${b}` : `${b}_${a}`;
+			if (midpointCache.has(key)) return midpointCache.get(key);
+
+			const ax = positions[a*3];
+			const ay = positions[a*3 + 1];
+			const az = positions[a*3 + 2];
+			const bx = positions[b*3];
+			const by = positions[b*3 + 1];
+			const bz = positions[b*3 + 2];
+
+			let mx = (ax + bx) * 0.5;
+			let my = (ay + by) * 0.5;
+			let mz = (az + bz) * 0.5;
+
+			const len = Math.hypot(mx, my, mz);
+			mx = (mx / len) * radius;
+			my = (my / len) * radius;
+			mz = (mz / len) * radius;
+
+			const index = positions.length / 3;
+			positions.push(mx, my, mz);
+			midpointCache.set(key, index);
+			return index;
+		}
+
+		
+		for (let i = 0; i < subdivisions; i++) {
+			const newIndices = [];
+			midpointCache.clear();
+
+			for (let j = 0; j < indices.length; j += 3) {
+				const a = indices[j];
+				const b = indices[j+1];
+				const c = indices[j+2];
+
+				const ab = getMidpoint(a, b);
+				const bc = getMidpoint(b, c);
+				const ca = getMidpoint(c, a);
+
+				newIndices.push(
+					a, ab, ca,
+					b, bc, ab,
+					c, ca, bc,
+					ab, bc, ca
+				);
+			}
+		indices = newIndices;
+		}		
+
+
+
+		const normals = [];
+		for (let i = 0; i < positions.length; i += 3) {
+			const x = positions[i];
+			const y = positions[i+1];
+			const z = positions[i+2];
+			const len = Math.hypot(x, y, z);
+			normals.push(x / len, y / len, z / len);
+		}
+
+		this.vertices = new Float32Array(positions);
+		this.normals = new Float32Array(normals);
+		this.indices = new Float32Array(indices);
+
+		this.refillBuffers();
+		this.rebindBuffers();
+
+
 
 	}
 

@@ -44,7 +44,7 @@ async function init(){
 	renderer = new Renderer(gl);
 	shaderManager = new ShaderManager(gl);
 
-	//loading shaders
+	//compiling and loading shaders
 
     await shaderManager.load("defaultShader",
         './shaders/vertex.glsl',
@@ -56,6 +56,19 @@ async function init(){
         './shaders/Star/starFragment.glsl'
 	);
 
+	await shaderManager.load("starGlowShader",
+        './shaders/Star/starVertex.glsl?',
+        './shaders/Star/starGlowFragment.glsl'
+	);
+
+	await shaderManager.load("skyboxShader",
+        './shaders/Skybox/skyboxVertex.glsl?',
+        './shaders/Skybox/skyboxFragment.glsl'
+	);
+
+
+
+
 	renderer.shaderManager = shaderManager;
 
 
@@ -63,8 +76,11 @@ async function init(){
     gl.enable(gl.CULL_FACE);
 
 	textureManager = new TextureManager(gl);
-	//TODO
-	textureManager.test();
+
+	textureManager.load("star", "./assets/Textures/sunTextureBW2.png");
+	textureManager.load("skybox", "./assets/Textures/starskybox.png");
+
+	App.createSkybox()
 
 
 
@@ -85,12 +101,11 @@ async function main(){
 
 	App.createPlanet(3.5, 64, 64, [0,0,0]);
 	App.createPlanet(1.0, 32, 32, [4,4,4]);
-	//App.createStar(5, 32, 32, [10,-1,10], 1.0, [0.8,0.15,0.0]);
 	
 	App.createStar(60, 32, 32, [200,10,200], 3.0, [0.9,0.01,0.0], 
-		[1.0,0.0,0.0, 0.0,1.0,0.0, 0.0,0.0,1.0, 1.0,1.0,1.0]);
+		[1.0,0.0,0.0, 0.8,0.3,0.0, 0.5,0.5,0.0, 1.0,1.0,1.0]);
 
-	App.createStar(20, 32, 32, [-200,10,-200], 3.0, [8.0,8.0,1.0], 
+	App.createStar(20, 32, 32, [-200,10,-200], 3.0, [1.0,1.0,1.0], 
 		[0.0,0.0,0.4, 0.2,0.3,0.8, 0.4,0.4,1.0, 1.0,1.0,1.0]);
 
 
@@ -145,6 +160,7 @@ function hexToVec(hex) {
   return [r, g, b];
 }
 
+// Model functions
 App.createPlanet = function(radius, lat, lon, pos){
 	if(!(gl && shaderManager && renderer)) return;
 
@@ -164,19 +180,39 @@ App.createStar = function(radius, lat, lon, pos, glowStrength, glowColor, mainCo
 	sphere.uniforms["uGlowStrength"] = glowStrength;
 	sphere.uniforms["uRadius"] = radius;
 	sphere.uniforms["uMainColors"] = new Float32Array(mainColors); 
-	//TODO
-	sphere.texture = textureManager.test_texture;
-	sphere.position = pos;
-
-
-	sphere.repaint({bands: 4, turbulence: 0.89, cloudStrength: 1,  colors: [0.7764705882352941, 0.27450980392156865, 0 ], type: "Ocean"});
-	//sphere.repaint({type: "Swirl", swirlStrength: 3,  colors: [[ 0.3607843137254902, 0.17647058823529413, 0.41568627450980394 ]]});
-	
+	sphere.texture = textureManager.textures.get("star");
+	sphere.position = pos;	
 	spheres.push(sphere);
 
 	renderer.addShape(sphere);
 	renderer.addPointLight(pos, glowColor, glowStrength*100000.0, 252.0 + radius*radius);
 
+	
+	sphere = new Sphere(gl, renderer,"starGlowShader", shaderManager, radius*1.4, lat, lon);
+
+	sphere.uniforms["uGlowColor"] = glowColor;
+	sphere.uniforms["uGlowStrength"] = glowStrength;
+	sphere.uniforms["uRadius"] = radius;
+	sphere.uniforms["uTransparency"] = 0.4;
+	sphere.uniforms["uPlanetCenter"] = pos;
+	sphere.position = pos;
+
+	spheres.push(sphere);
+
+	renderer.addShape(sphere);
+	renderer.addPointLight(pos, glowColor, glowStrength*100000.0, 252.0 + radius*radius);
+}
+
+App.createSkybox = function(){	
+
+	let sphere = new Sphere(gl, renderer,"skyboxShader", shaderManager, 2000.0, 64, 64);
+
+	sphere.texture = textureManager.textures.get("skybox");
+	sphere.position = [0.0, 0.0, 0.0];
+	sphere.frontFaceCull = true;
+	spheres.push(sphere);
+
+	renderer.skybox = sphere;
 }
 
 

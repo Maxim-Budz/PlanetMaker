@@ -1,4 +1,3 @@
-//TODO WIP
 export default class TextureManager {
     constructor(gl) {
         this.gl = gl;
@@ -6,11 +5,8 @@ export default class TextureManager {
         this.nextUnit = 0;
         this.maxUnits = gl.getParameter(gl.MAX_COMBINED_TEXTURE_IMAGE_UNITS);
     }
-
-
-//TODO add the methods here and remove test
-	test(){
-
+//TODO cubemap texture loading
+	load(name, source){
 		const gl = this.gl;
 		var texture = gl.createTexture();
 		gl.bindTexture(gl.TEXTURE_2D, texture);
@@ -19,9 +15,10 @@ export default class TextureManager {
 					  new Uint8Array([0, 0, 255, 255]));
 		 
 		var image = new Image();
-		image.src = "./assets/Textures/sunTextureBW2.png";
+
+		image.src = source;
 		image.onload = () => console.log("IMAGE LOADED", image.width, image.height);
-		image.onerror = () => console.error("IMAGE FAILED TO LOAD");
+		image.onerror = () => console.error("IMAGE FAILED TO LOAD", source);
 
 	
 		image.addEventListener('load', function() {
@@ -43,9 +40,13 @@ export default class TextureManager {
 		});
 
 
-		this.test_texture = texture;
+		this.textures.set(name, texture);
 	}
-}
+
+
+
+	}
+
 
 
 

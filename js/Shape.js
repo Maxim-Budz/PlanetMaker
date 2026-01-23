@@ -28,6 +28,8 @@ export default class Shape {
 		this.uvs		= [];
 		this.indices	= [];
 
+		this.frontFaceCull = false;
+
 		this.uniforms = {};
 		this.vao = gl.createVertexArray();
 

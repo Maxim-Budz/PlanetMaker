@@ -1,5 +1,5 @@
 const { mat3, mat4, vec3, vec4 } = glMatrix;
-
+//TODO change skybox rendering to cubemap...
 export default class Renderer {
     constructor(gl) {
 
@@ -7,6 +7,8 @@ export default class Renderer {
 		this.shaderManager = null;
 
         this.shapes = [];
+		this.skybox = null;
+
         this.model = glMatrix.mat4.create();
         this.view = glMatrix.mat4.create();
         this.proj = glMatrix.mat4.create();
@@ -19,7 +21,7 @@ export default class Renderer {
 		this.focusPoint = [0,0,0];
 
 		this.aspect = gl.canvas.clientWidth / gl.canvas.clientHeight;
-		mat4.perspective(this.proj, 45 * Math.PI / 180, this.aspect, 0.1, 1000.0);
+		mat4.perspective(this.proj, 45 * Math.PI / 180, this.aspect, 0.1, 10000.0);
         glMatrix.mat4.lookAt(this.view, this.camPos, [0, 0, 0], [0, 1, 0]);
 		
 		this.ambient = [0.1,0.1,0.1];
@@ -113,6 +115,29 @@ export default class Renderer {
 
 		glMatrix.mat4.lookAt(this.view, this.camPos, this.focusPoint, [0, 1, 0] );
 
+		//skybox first
+		gl.useProgram(this.shaderManager.programs["skyboxShader"].program);
+		gl.depthMask(false);
+		this.setFrameUniforms("skyboxShader");
+		this.shaderManager.applyShapeUniforms(this.skybox);
+
+		gl.bindVertexArray(this.skybox.vao);
+		gl.activeTexture(gl.TEXTURE0);
+		gl.bindTexture(gl.TEXTURE_2D, this.skybox.texture);
+		this.shaderManager.apply("skyboxShader", "uTexture", 0);
+		gl.cullFace(gl.FRONT);
+		
+		this.skybox.draw(elapsed);
+		gl.bindVertexArray(null);
+		gl.cullFace(gl.BACK);
+		gl.depthMask(true);
+
+
+					
+
+
+		
+
 		//for each shader, render the objects that use it
 		for (const shaderName in this.shaderManager.programs){
 			gl.useProgram(this.shaderManager.programs[shaderName].program);			
@@ -121,23 +146,30 @@ export default class Renderer {
 			//TODO put shapes in scene class that will be made soon
 			for (const shape of this.shapes.filter(s => s.shader.name === shaderName)){
 				
-				this.shaderManager.applyShapeUniforms(shape);
-				//apply select filter
+				//apply select filter. TODO, change the selected object to use frensel shader...
 				this.shaderManager.apply(shape.shader.name, "uTransparency", shape.id === selectedID ? 0.4 : 1.0);
+
+				this.shaderManager.applyShapeUniforms(shape);
 
 				gl.bindVertexArray(shape.vao);
 				if (shape.texture) {
 					if (!(shape.texture instanceof WebGLTexture)) {
-					//	console.error("Error: shape.texture is not a WebGLTexture object!", shape.texture);
+					console.error("Error: shape.texture is not a WebGLTexture object!", shape.texture);
 					} else {
 						gl.activeTexture(gl.TEXTURE0);
 						gl.bindTexture(gl.TEXTURE_2D, shape.texture);
-						
+					
 						//const err = gl.getError();
 						//if (err) console.error("GL ERROR at bind texture:", err, "Shape ID:", shape.id);
 						
 						this.shaderManager.apply(shaderName, "uTexture", 0);
 					}
+				}
+
+				if(shape.frontFaceCull){
+					gl.cullFace(gl.FRONT);
+				}else{
+					gl.cullFace(gl.BACK);
 				}
 
 

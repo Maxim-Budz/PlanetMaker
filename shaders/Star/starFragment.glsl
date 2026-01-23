@@ -16,7 +16,6 @@ varying vec3 vColor;
 varying vec3 vNormal;
 varying vec2 vUV;
 
-//TODO add a uniform array for colours to blend the sun with, max 4.
 vec3 starColor(float t) {
     t = clamp(t, 0.0, 1.0);
 
@@ -34,12 +33,7 @@ void main(void) {
 	vec3 tex = texture2D(uTexture, uv).rgb;
 
 	float mask = tex.r;
-	//mask = pow(mask, 1.0);
-
 	vec3 color = starColor(mask);
-
-
-	//fresnel
 
 
 	vec3 N = normalize(vNormal);
@@ -49,9 +43,9 @@ void main(void) {
 
 	dynamicPower = max(dynamicPower, 1.1);
 
-	float fresnel = pow(1.0 - max(dot(N, V), 0.0), dynamicPower );
+	float fresnel = pow(1.0 - max(dot(N, V), 0.0), 3.0 );
 
-	float finalGlow = fresnel * uGlowStrength * (1.0 + uRadius * 0.01);
+	float finalGlow = fresnel * (1.0 + uRadius * 0.005);
     
 	
 	color = mix(color, uGlowColor, finalGlow);
