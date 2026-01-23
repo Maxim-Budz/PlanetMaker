@@ -14,8 +14,8 @@ export default class Renderer {
         this.proj = glMatrix.mat4.create();
 
 
-		this.camSpeed = 1.0;
-		this.camHeight = 10.0;
+		this.camSpeed = 0.1;
+		this.camHeight = 800.0;
 		this.camPos = [10, -16, 10];
 
 		this.focusPoint = [0,0,0];
@@ -26,12 +26,7 @@ export default class Renderer {
 		
 		this.ambient = [0.1,0.1,0.1];
 		
-		this.pointLights = [
-			//{ position:[7,7,7], color:[1.0,0.0,0.0], intensity:1.0, distance:100.0},
-			//{ position:[-4,2,-4], color:[0.0,1.0,0.0], intensity:0.7, distance:7.0},
-			//{ position:[4,6,-4], color:[0.0,0.0,1.0], intensity:0.8, distance: 30.0},  
-			//{ position:[-4,0,4], color:[1.0,1.0,1.0], intensity:0.5, distance: 30.0},  
-		];
+		this.pointLights = [];
 
 		this.lightPositions = [];
 		this.lightColors     = [];
