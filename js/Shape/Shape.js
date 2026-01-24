@@ -1,6 +1,6 @@
 const { mat4, mat3, vec3 } = glMatrix;
-import Renderer from './Renderer.js';
-import ShaderManager from './ShaderManager.js'
+import Renderer from '../WebGL/Renderer.js';
+import ShaderManager from '../WebGL/ShaderManager.js'
 
 export default class Shape {
     constructor(gl, renderer, shaderName, shaderManager) {

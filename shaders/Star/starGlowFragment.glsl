@@ -23,16 +23,16 @@ void main(void) {
 
     vec3 V = normalize(uCamPos - vPosition);
 
+	float ndotv = dot(N,V);
+	float glowMask = smoothstep(0.0, 0.3, 1.0 - ndotv);
 
-	float fresnel = 1.0 - pow(1.0 - clamp(dot(N, V), 0.0, 1.0), 0.8 );
+
+	float fresnel = 1.0 - pow(1.0 - clamp(ndotv, 0.0, 1.0), 0.8 );
 	float rim = fresnel * smoothstep(0.0, 0.5, fresnel);
 
 	float height = length(vPosition - uPlanetCenter) - uRadius;
 
-	
-    
-	
-	vec3 color = uGlowColor * rim;
+	vec3 color = uGlowColor * rim * glowMask;
 
 	gl_FragColor = vec4(color, uTransparency); 
 }

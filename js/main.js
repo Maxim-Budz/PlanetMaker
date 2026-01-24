@@ -1,12 +1,12 @@
-import Renderer from './Renderer.js';
+import Renderer from './WebGL/Renderer.js';
+import ShaderManager from './WebGL/ShaderManager.js';
+import ShaderProgram from './WebGL/ShaderProgram.js';
+import TextureManager from './WebGL/TextureManager.js';
 
-import ShaderManager from './ShaderManager.js';
-import ShaderProgram from './ShaderProgram.js';
+import Cube from './Shape/Cube.js';
+import Sphere from './Shape/Sphere.js';
 
-import TextureManager from './TextureManager.js';
-
-import Cube from './Cube.js';
-import Sphere from './Sphere.js';
+import CelestialBody from './CelestialBody.js'
 
 window.App = window.App || {};
 const { mat4, vec3 } = glMatrix;
@@ -16,10 +16,16 @@ let shaderManager = null;
 let textureManager = null;
 
 let gl = null;
+
 let spheres = [];
+//TODO eventually replace all just sphere with celestial body.
+let celestialBodies = [];
+
 export let currentSelection = -1;
 export let selectedID = -1;
 const canvas = document.getElementById("glCanvas");
+
+let selectedModelId = "None";
 
 async function init(){
 
@@ -66,9 +72,6 @@ async function init(){
         './shaders/Skybox/skyboxFragment.glsl'
 	);
 
-
-
-
 	renderer.shaderManager = shaderManager;
 
 
@@ -80,11 +83,9 @@ async function init(){
 	textureManager.load("star", "./assets/Textures/sunTextureBW2.png");
 	textureManager.load("skybox", "./assets/Textures/starskybox.png");
 
-	App.createSkybox()
+	App.createSkybox();
 
-
-
-	
+	openMenuForModel("None");	
 }
 
 
@@ -132,6 +133,8 @@ async function main(){
 	loop();
 }
 
+
+//external functions
 function updateAmbient() {
 	if(!renderer) return;
     renderer.setAmbientColor(hexToVec(ambCol.value));
@@ -156,7 +159,6 @@ App.updateTerrain = function(terValues){
 	spheres[currentSelection].repaint(spheres[currentSelection].paintValues);
 }
 
-
 App.updatePaint = function(values){
 	if (spheres.length < currentSelection) return;
 	spheres[currentSelection].repaint(values);
@@ -172,19 +174,38 @@ function hexToVec(hex) {
   return [r, g, b];
 }
 
+
+
 // Model functions
 App.createPlanet = function(radius, lat, lon, pos){
 	if(!(gl && shaderManager && renderer)) return;
 
+	let planet = new CelestialBody();
+
 	let sphere = new Sphere(gl, renderer,"defaultShader", shaderManager, radius, lat, lon);
+	
 	sphere.position = pos;
 	spheres.push(sphere);
+
 	renderer.addShape(sphere);
+	planet.baseModel = sphere;
+	//LOAD ATMOSPHERE ALSO
+	//
+	
+
+
+	planet.type = "Planet";
+
+	planet.selectPosition = pos;
+	planet.selectRadius = radius;
+
+	celestialBodies.push(planet);
 }
 
+//(MAX 4 COLOURS)
+App.createStar = function(radius, lat, lon, pos, glowStrength, glowColor, mainColors){
 
-//MAX 4 COLOURS
-App.createStar = function(radius, lat, lon, pos, glowStrength, glowColor, mainColors){	
+	let star = new CelestialBody();
 
 	let sphere = new Sphere(gl, renderer,"starShader", shaderManager, radius, lat, lon);
 
@@ -199,6 +220,7 @@ App.createStar = function(radius, lat, lon, pos, glowStrength, glowColor, mainCo
 	renderer.addShape(sphere);
 	renderer.addPointLight(pos, glowColor, glowStrength*100000.0, 252.0 + radius*radius);
 
+	star.baseModel = sphere;
 	
 	sphere = new Sphere(gl, renderer,"starGlowShader", shaderManager, radius*1.4, lat, lon);
 
@@ -213,6 +235,14 @@ App.createStar = function(radius, lat, lon, pos, glowStrength, glowColor, mainCo
 
 	renderer.addShape(sphere);
 	renderer.addPointLight(pos, glowColor, glowStrength*100000.0, 252.0 + radius*radius);
+
+	star.atmosLayer = sphere;
+
+	star.type = "Star";
+	star.selectPosition = pos;
+	star.selectRadius = radius;
+
+	celestialBodies.push(star);
 }
 
 App.createSkybox = function(){	
@@ -226,6 +256,7 @@ App.createSkybox = function(){
 
 	renderer.skybox = sphere;
 }
+
 
 
 
@@ -248,7 +279,8 @@ export function mouse_moved(x, y){
 export function mouse_released(x, y){
 	let ndcCoords = toNDC(x,y,canvas);
 	let ray = renderer.makeRay(ndcCoords[0], ndcCoords[1]);
-	checkSpheres(ray.origin, ray.dir);
+	checkSpheres(ray.origin, ray.dir); //TODO replace
+	checkBodies(ray.origin, ray.dir); 
 }
 
 globalThis.mouse_pressed  = mouse_pressed;
@@ -265,6 +297,8 @@ function toNDC(x, y, canvas) {
 }
 
 
+
+//Select Body code
 function checkSpheres(rayOrigin, rayDir){
 	let closest = Infinity;
 	let picked = null;
@@ -285,9 +319,30 @@ function checkSpheres(rayOrigin, rayDir){
 		currentSelection = -1;
 		selectedID = null;
 	}
+}
 
-	
+function checkBodies(rayOrigin, rayDir){
+	let closest = Infinity;
+	let picked = null;
 
+	for (const b of celestialBodies) {
+		const t = raySphereHit(rayOrigin, rayDir, b.selectPosition, b.selectRadius);
+		if (t !== false && t < closest) {
+			closest = t;
+			picked = b;
+		}
+	}
+
+	if (picked) {
+		//currentSelection = celestialBodies.indexOf(picked);
+		//selectedID = picked.id;
+		//renderer.focusPoint = picked.selectPosition;
+		openMenuForModel(picked.type);
+	}else{
+		//currentSelection = -1;
+		//selectedID = null;
+		openMenuForModel("None");
+	}
 }
 
 function raySphereHit(rayOrigin, rayDir, center, radius) {
@@ -308,6 +363,26 @@ function raySphereHit(rayOrigin, rayDir, center, radius) {
 
     const t = Math.min(t1, t2);
     return t >= 0 ? t : false;
+}
+
+function openMenuForModel(modelID){
+
+	console.log("Opening menu:", modelID);
+
+	document.querySelectorAll(".selected-model-menu").forEach(menu => {
+		console.log("closing", menu.dataset.model);
+		menu.classList.remove("open");
+	});
+
+	const menu = document.querySelector(
+		`.selected-model-menu[data-model="${modelID}"]`
+	);
+
+	console.log("found menu:", menu?.dataset.model);
+
+	if (menu){
+		menu.classList.add("open");
+	}
 }
 
 

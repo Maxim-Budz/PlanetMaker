@@ -1,79 +1,132 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-	<title>Random Planet Maker</title>
-	<link rel="stylesheet" href="css/style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Random Planet Maker</title>
+    <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-	<div class="container">
-		<h1>Planet Maker</h1>
-		<div class="box">
-			<div>
-				<h3>Rendering & Camera Options</h3>
-				<label>Ambient Light Colour:
-					<input id="ambCol" type = "color" value = "#333333">
-				</label>
+    <div class="container">
+        <h1>Planet Maker</h1>
+        
+        <div class="box">
+            <div class="side-panel">
+                <h3>Rendering & Camera</h3>
+                
+                <label>Ambient Light
+                    <input id="ambCol" type="color" value="#333333">
+                </label>
 
-			  <label>CamSpeed
-				<input id="camSpeed" type="number" min="-7" max="7" step="0.1" value="0.1">
-			  </label>			  
-			  <label>Zoom
-				<input id="zoom" type="range" min="0" max="1000" step="0.01" value="800.0">
-			  </label>
+                <label>Cam Speed
+                    <input id="camSpeed" type="number" min="-7" max="7" step="0.1" value="0.1">
+                </label>
+
+                <label>Zoom
+                    <input id="zoom" type="range" min="0" max="1000" step="0.01" value="800.0">
+                </label>
+            </div>
+
+
+
+            <canvas id="glCanvas" width="800" height="800">
+                Your browser doesn't appear to support the HTML5 canvas element.
+            </canvas>
+
+
+			<div class="side-panel">
+            <div class="selected-model-menu open" data-model="None">
+                <h2>Create New</h2>
+                
+                <label>Radius
+                    <input type="number" id="spawnPlanetRadius" min="0" max="100" step="1" value="2">
+                </label>
+
+                <p>Position</p>
+                <div id="spawnPlanetPos"class="smallContainer">
+                    <div class="coord"><small>X</small><input type="number" id="newSpawnX" value="0"></div>
+                    <div class="coord"><small>Y</small><input type="number" id="newSpawnY" value="0"></div>
+                    <div class="coord"><small>Z</small><input type="number" id="newSpawnZ" value="0"></div>
+                </div>
+
+                <div class="random-settings">
+                    <label class="row-label">
+                        Randomise <input type="checkbox" id="randomisePlanet">
+                    </label>
+                    <label>Count
+                        <input type="number" id="randomSpawnAmount" min="1" max="100" step="1" value="1">
+                    </label>
+                </div>
+
+                <button id="newPlanet">Create New Planet</button>
+            </div>
+
+            <div class="selected-model-menu" data-model="Planet">
+                <h2>Planet Options</h2>
+                
+                <section>
+                    <h3>Appearance</h3>
+                    <label>Style
+                        <select id="paintType">
+                            <option value="">-- Choose One --</option>
+                            <option value="Swirl">Swirl</option>
+                            <option value="Ocean">Ocean</option>
+                            <option value="Terrain">Terrain</option>
+                        </select>
+                    </label>
+                    <div id="configArea"></div>
+                    <button id="paintBtn" class="hidden">Paint</button>
+                </section>
+
+                <section>
+                    <h3>Terrain</h3>
+                    <label>Frequency <input id="freq" type="number" step="0.1" value="0.5"></label>
+                    <label>Amplitude <input id="amp" type="number" step="0.1" value="1.0"></label>
+                    <label>Lacunarity <input id="lacu" type="number" step="0.1" value="1.8"></label>
+                    <label>Persistance <input id="pers" type="number" step="0.1" value="0.5"></label>
+                    <label>Octaves <input id="octa" type="number" step="1" value="3"></label>
+                </section>
+
+                <button id="killPlanet" class="danger">Remove Planet</button>
+            </div>
+
+            <div class="selected-model-menu" data-model="Star">
+                <h2>Star Options</h2>
+
+                <section>
+                    <h3>Colours</h3>
+                    <div id="colorArea">
+                        <span>Palette</span>
+                        <input type="color" value="#333333">
+                        <input type="color" value="#333333">
+                        <input type="color" value="#333333">
+                        <input type="color" value="#333333">
+                    </div>
+                    <label>Glow Colour
+                        <input id="glow" type="color" value="#333333">
+                    </label>
+                    <label>Glow Strength
+                        <input id="glowStr" type="number" step="0.1" value="1.0">
+                    </label>
+                </section>
+
+                <section>
+                    <label>Radius
+                        <input id="starRadius" type="number" min="1" step="1" value="10">
+                    </label>
+
+                    <p>Position</p>
+                    <div class="smallContainer">
+                        <div class="coord"><small>X</small><input type="number" id="starX" value="0"></div>
+                        <div class="coord"><small>Y</small><input type="number" id="starY" value="0"></div>
+                        <div class="coord"><small>Z</small><input type="number" id="starZ" value="0"></div>
+                    </div>
+                </section>
+            </div>
 			</div>
-			<canvas id="glCanvas" width=800 height=800>Your browser doesn't appear to support the HTML5 canvas element.</canvas>
-			<div class="container">
-				<h2>Planet Options:</h2>
 
-			  <h3>Colour Options</h3>
-			  Select Style:
-			  <select id="paintType">
-				<option value="">-- Choose One --</option>
-				<option value="Swirl">Swirl</option>
-				<option value="Ocean">Ocean</option>
-				<option value="Terrain">Terrain</option>
-			  </select>
-
-			  <div id="configArea"></div>
-			<button id="paintBtn" class="hidden">Paint</button>
-			</div>
-			<div>
-			Radius
-			<input type="number" id="spawnRadius", min = 0, max = "100", step="1", value="2">
-			Position
-			<div class="smallContainer" id="spawnPos">
-				<input type="number" id="spawnX", min = "-100", max="100", step="1", value="0">
-				<input type="number" id="spawnX", min = "-100", max="100", step="1", value="0">
-				<input type="number" id="spawnX", min = "-100", max="100", step="1", value="0">
-			</div>
-			<div class="smallContainer" id="randOpts">
-			Randomise<input type="checkbox" id="randomisePlanet">
-			Count<input type="number" id="randomSpawnAmount", min = "1", max ="100", step="1", value="1" >
-			</div>
-			<button id="newPlanet">Create New Planet</button>
-			<button id="killPlanet">Remove Planet</button>
-				<h3>Terrain Options</h3>
-
-			  <label>frequency
-				<input id="freq" type="number" min="0" max="10" step="0.1" value="0.5">
-			  </label>
-			  <label>amplitude
-				<input id="amp" type="number" min="0" max="10" step="0.1" value="1.0">
-			  </label>
-			  <label>Lacunarity
-				<input id="lacu" type="number" min="0" max="20" step="0.1" value="1.8">
-			  </label>
-
-			  <label>Persistance
-				<input id="pers" type="number" min="0" max="20" step="0.1" value="0.5">
-			  </label>
-			  <label>Octaves
-				<input id="octa" type="number" min="0" max="20" step="1" value="3">
-			  </label>
-			</div>
-		</div>
-	</div>
-
+        </div> 
+</div>
 	<script src="js/libs/toji-gl-matrix-accefb6/dist/gl-matrix-min.js"></script>
 	<script src="js/libs/noisejs-master/perlin.js"></script>
 
@@ -121,15 +174,19 @@
 
 	
 	<script type="module" src="js/main.js"></script>
-	<script type="module" src="js/ShaderProgram.js"></script>
-	<script type="module" src="js/ShaderManager.js"></script>
-	<script type="module" src="js/paintUI.js"></script>
-	<script type="module" src="js/PlanetUI.js"></script>
-	<script type="module" src="js/TerrainUI.js"></script>
-	<script type="module" src="js/Shape.js"></script>
-	<script type="module" src="js/Renderer.js"></script>
-	<script type="module" src="js/Cube.js"></script>
-	<script type="module" src="js/Sphere.js"></script>
+	<script type="module" src="js/CelestialBody.js"></script>
+
+	<script type="module" src="js/WebGL/ShaderManager.js"></script>
+	<script type="module" src="js/WebGL/ShaderProgram.js"></script>
+	<script type="module" src="js/WebGL/Renderer.js"></script>
+
+	<script type="module" src="js/Shape/Shape.js"></script>
+	<script type="module" src="js/Shape/Cube.js"></script>
+	<script type="module" src="js/Shape/Sphere.js"></script>
+
+	<script type="module" src="js/UI/paintUI.js"></script>
+	<script type="module" src="js/UI/PlanetUI.js"></script>
+	<script type="module" src="js/UI/TerrainUI.js"></script>
 
 
 </body>

@@ -1,79 +1,186 @@
+html{
+    overflow: hidden;
+}
+
+/* --- Global Styles --- */
 body {
     margin: 0;
     display: flex;
     justify-content: center;
     align-items: center;
-    height: 100vh;
+    min-height: 100vh; 
     background-color: #f0f0f0;
-    font-family: Arial, sans-serif;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    color: #333;
 }
 
 .container {
     text-align: center;
+    padding: 20px;
 }
 
-h1 {
-    color: green;
-    margin-bottom: 20px;
-}
-
-h3 {
-    margin-bottom: 20px;
-}
-
+/* --- Layout --- */
 .box {
     display: flex;
     flex-direction: row;
-    gap: 20px;
-    padding: 20px;
-    background: #fff;
-    border: 1px solid #ccc;
+    align-items: stretch;
+    gap: 24px;
+    padding: 24px;
+    background: #ffffff;
+    border-radius: 8px; 
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+	height:calc(100vh - 150px);
+	overflow: hidden;
 }
 
-.box > div {
+/* Common Column Style */
+.box > div:not(.selected-model-menu), 
+.selected-model-menu {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 16px; 
 }
 
-input[type=range] {
-  width: 100%;
-}
-
-input[type=number] {
-	width: 80%;
-}
-button {
-  padding: 8px 12px;
-  background: #444;
-  color: white;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-}
-button:hover {
-  background: #666;
-}
-
-
-
-label {
-  display: flex;
-  justify-content: space-between;
-  width: 200px; 
-}
-
-canvas, #glCanvas {
+/* --- Canvas Styling --- */
+#glCanvas {
     width: 800px;
     height: 600px;
-    background: #200;
+    background: #000;
     display: block;
+    border-radius: 4px;
+    box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
 }
 
-
-.smallContainer{
-	display: flex;
-	justify-content: 'space-around';        
-	align-items: 'center';
+/* --- Form Elements --- */
+label {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #555;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
 }
 
+input[type=number], 
+input[type=range],
+select {
+    padding: 6px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-family: inherit;
+}
+
+/* Specialized Small Inputs */
+.smallContainer {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-start; 
+    align-items: center;
+}
+
+.coord input {
+    width: 60px; 
+    text-align: center;
+}
+
+/* --- Color Pickers --- */
+#colorArea {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 8px;
+    background: #f9f9f9;
+    border-radius: 4px;
+}
+
+input[type="color"] {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+#colorContainer {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap; 
+    gap: 8px;
+    overflow-x: auto; 
+	padding: 10px 5px;
+    min-height: 60px;
+    align-items: center;
+    border: 1px solid #fafafa;
+}
+
+/* --- Menu Logic --- */
+.selected-model-menu {
+    display: none;
+    width: 300px; 
+    text-align: left;
+    border-left: 1px solid #eee; 
+    padding-left: 20px;
+}
+
+.selected-model-menu.open {
+    display: flex;
+	flex-direction: column;
+}
+
+.hidden {
+    display: none !important;
+}
+
+/* Scrollable Sidebars */
+.side-panel, 
+.selected-model-menu {
+    width: 300px;
+    padding: 20px;
+    overflow-y: auto; 
+    overflow-x: hidden;
+    background: #ffffff;
+    height: 100%;
+	max-height: calc(100vh - 40px);
+	box-sizing: border-box;
+}
+
+.side-panel::-webkit-scrollbar,
+.selected-model-menu::-webkit-scrollbar {
+    width: 6px;
+}
+
+.side-panel::-webkit-scrollbar-thumb,
+.selected-model-menu::-webkit-scrollbar-thumb {
+    background: #ccc;
+    border-radius: 10px;
+}
+
+#configArea {
+    height: 300px; 
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 10px;
+    background: #fdfdfd;
+    border: 1px inset #eee;
+    border-radius: 4px;
+    margin-bottom: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+#configArea h3 {
+    font-size: 0.9rem;
+    margin: 5px 0;
+    color: #444;
+    border-bottom: 1px solid #eee;
+}
+
+#configArea::-webkit-scrollbar {
+    width: 5px;
+}
+#configArea::-webkit-scrollbar-thumb {
+    background: #ccc;
+    border-radius: 10px;
+}

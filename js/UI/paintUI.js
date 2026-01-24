@@ -118,7 +118,7 @@ function showSwirlControls(){
 	showColorControls();
 	showControl("Swirl strength", "swirlStrength", "range", 0, 30, 0.3, 3.0);
 }
-
+	
 function showOceanControls() {
 	showColorControls();
 	showControl("Bands", "bands", "number", 0, 20, 1, 4);
@@ -145,11 +145,12 @@ function addColorPicker() {
 
 	const container = document.getElementById("colorContainer");
 	const wrapper = document.createElement("div");
-	wrapper.className = "color-row";
+	wrapper.className = "color-item";
 
 	const input = document.createElement("input");
 	input.type = "color";
 	input.value = randomHexColor();
+	input.className = "swatch";
 
 	wrapper.appendChild(input);
 	container.appendChild(wrapper);

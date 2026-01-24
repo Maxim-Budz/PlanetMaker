@@ -1,6 +1,6 @@
 
-const spawnRadiusInput = document.getElementById("spawnRadius");
-const spawnPositionArea = document.getElementById("spawnPos");
+const spawnRadiusInput = document.getElementById("spawnPlanetRadius");
+const spawnPositionArea = document.getElementById("spawnPlanetPos");
 const randomSelection = document.getElementById("randomisePlanet");
 const randomSpawnAmount = document.getElementById("randomSpawnAmount");
 
