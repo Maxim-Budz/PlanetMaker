@@ -1,8 +1,11 @@
+import Sphere from '../Shape/Sphere.js';
+
 const { mat3, mat4, vec3, vec4 } = glMatrix;
 //TODO change skybox rendering to cubemap...
 export default class Renderer {
     constructor(gl) {
-
+		
+		this.visibleObjects = 0;
         this.gl = gl;
 		this.shaderManager = null;
 
@@ -95,7 +98,10 @@ export default class Renderer {
 
 
 	render(elapsed, selectedID){
+		this.visibleObjects = 0;
 		const gl = this.gl;
+
+
         gl.clearColor(0, 0, 0, 1);
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
@@ -109,6 +115,7 @@ export default class Renderer {
 		this.camPos = [this.focusPoint[0] + camX, this.focusPoint[1] + camY, this.focusPoint[2] + camZ];
 
 		glMatrix.mat4.lookAt(this.view, this.camPos, this.focusPoint, [0, 1, 0] );
+		this.extractFrustumPlanes();
 
 		//skybox first
 		gl.useProgram(this.shaderManager.programs["skyboxShader"].program);
@@ -128,11 +135,6 @@ export default class Renderer {
 		gl.depthMask(true);
 
 
-					
-
-
-		
-
 		//for each shader, render the objects that use it
 		for (const shaderName in this.shaderManager.programs){
 			gl.useProgram(this.shaderManager.programs[shaderName].program);			
@@ -140,40 +142,143 @@ export default class Renderer {
 
 			//TODO put shapes in scene class that will be made soon
 			for (const shape of this.shapes.filter(s => s.shader.name === shaderName)){
-				
-				//apply select filter. TODO, change the selected object to use frensel shader...
-				this.shaderManager.apply(shape.shader.name, "uTransparency", shape.id === selectedID ? 0.4 : 1.0);
 
-				this.shaderManager.applyShapeUniforms(shape);
+				//Optimisation here, Cull everything outside of view frustrum. Add switch if I use something other than sphere...
+				if (shape instanceof Sphere && this.sphereInFrustum(shape.position, shape.radius) ){
+					//apply select filter. TODO, change the selected object to use frensel shader...
+					this.shaderManager.apply(shape.shader.name, "uTransparency", shape.id === selectedID ? 0.4 : 1.0);
 
-				gl.bindVertexArray(shape.vao);
-				if (shape.texture) {
-					if (!(shape.texture instanceof WebGLTexture)) {
-					console.error("Error: shape.texture is not a WebGLTexture object!", shape.texture);
-					} else {
-						gl.activeTexture(gl.TEXTURE0);
-						gl.bindTexture(gl.TEXTURE_2D, shape.texture);
-					
-						//const err = gl.getError();
-						//if (err) console.error("GL ERROR at bind texture:", err, "Shape ID:", shape.id);
+					this.shaderManager.applyShapeUniforms(shape);
+
+					gl.bindVertexArray(shape.vao);
+					if (shape.texture) {
+						if (!(shape.texture instanceof WebGLTexture)) {
+						console.error("Error: shape.texture is not a WebGLTexture object!", shape.texture);
+						} else {
+							gl.activeTexture(gl.TEXTURE0);
+							gl.bindTexture(gl.TEXTURE_2D, shape.texture);
 						
-						this.shaderManager.apply(shaderName, "uTexture", 0);
+							//const err = gl.getError();
+							//if (err) console.error("GL ERROR at bind texture:", err, "Shape ID:", shape.id);
+							
+							this.shaderManager.apply(shaderName, "uTexture", 0);
+						}
 					}
-				}
 
-				if(shape.frontFaceCull){
-					gl.cullFace(gl.FRONT);
+					if(shape.frontFaceCull){
+						gl.cullFace(gl.FRONT);
+					}else{
+						gl.cullFace(gl.BACK);
+					}
+
+
+					shape.draw(elapsed);
+
+					gl.bindVertexArray(null);
+					this.visibleObjects++;
+
+
 				}else{
-					gl.cullFace(gl.BACK);
-				}
+					continue;
 
+				}	
 
-				shape.draw(elapsed);
-
-				gl.bindVertexArray(null);
 			}
 		}
+
+		console.log(this.visibleObjects);
 	}
+
+	extractFrustumPlanes() {
+		//view proj matrix
+		const m = glMatrix.mat4.create();
+		glMatrix.mat4.multiply(m, this.proj, this.view);
+		const planes = [];
+
+		// Left
+		planes.push([
+			m[3] + m[0],
+			m[7] + m[4],
+			m[11] + m[8],
+			m[15] + m[12]
+		]);
+
+		// Right
+		planes.push([
+			m[3] - m[0],
+			m[7] - m[4],
+			m[11] - m[8],
+			m[15] - m[12]
+		]);
+
+		// Bottom
+		planes.push([
+			m[3] + m[1],
+			m[7] + m[5],
+			m[11] + m[9],
+			m[15] + m[13]
+		]);
+
+		// Top
+		planes.push([
+			m[3] - m[1],
+			m[7] - m[5],
+			m[11] - m[9],
+			m[15] - m[13]
+		]);
+
+		// Near
+		planes.push([
+			m[3] + m[2],
+			m[7] + m[6],
+			m[11] + m[10],
+			m[15] + m[14]
+		]);
+
+		// Far
+		planes.push([
+			m[3] - m[2],
+			m[7] - m[6],
+			m[11] - m[10],
+			m[15] - m[14]
+		]);
+
+		// Normalize planes
+		for (let p of planes) {
+			const len = Math.hypot(p[0], p[1], p[2]);
+			p[0] /= len;
+			p[1] /= len;
+			p[2] /= len;
+			p[3] /= len;
+		}
+
+		this.planes = planes;
+	}
+
+	sphereInFrustum(center, radius) {
+
+		for (let p of this.planes) {
+			const distance =
+				p[0] * center[0] +
+				p[1] * center[1] +
+				p[2] * center[2] +
+				p[3];
+
+			if (distance < -radius) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	sphereInFrustumDEBUG(center, radius) {
+		console.log(center, radius);
+		return false;  // Should cull everything
+	}
+
+
+
+
 
 
 	makeRay(ndcX, ndcY){

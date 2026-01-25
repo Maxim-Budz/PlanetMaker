@@ -6,7 +6,6 @@ export default class CelestialBody{
 		this.selectRadius = null;
 
 		this.baseModel = null;
-		this.atmosLayer = null;
 
 		this.type = null;
 	}

@@ -8,6 +8,11 @@ import Sphere from './Shape/Sphere.js';
 
 import CelestialBody from './CelestialBody.js'
 
+
+import Planet from './Planet.js'
+import Moon from './Moon.js'
+import Star from './Star.js'
+
 window.App = window.App || {};
 const { mat4, vec3 } = glMatrix;
 
@@ -72,6 +77,12 @@ async function init(){
         './shaders/Skybox/skyboxFragment.glsl'
 	);
 
+	await shaderManager.load("planetShader",
+        './shaders/Planet/planetVertex.glsl?',
+        './shaders/Planet/planetFragment.glsl'
+	);
+
+
 	renderer.shaderManager = shaderManager;
 
 
@@ -82,6 +93,8 @@ async function init(){
 
 	textureManager.load("star", "./assets/Textures/sunTextureBW2.png");
 	textureManager.load("skybox", "./assets/Textures/starskybox.png");
+	textureManager.load("surface", "./assets/Textures/surfaceTest.jpg");
+	console.log(textureManager.textures);
 
 	App.createSkybox();
 
@@ -101,11 +114,11 @@ async function main(){
 	[camSpeed,zoom].forEach(s => s.addEventListener("input", updateCamera));
 
 	App.createPlanet(3.5, 64, 64, [0,0,0]);
-	App.createPlanet(1.0, 32, 32, [4,4,4]);
+	App.createMoon(1.0, 32, 32, [4,4,4], celestialBodies[0].id);
 	App.createPlanet(7.5, 32,32, [-30, 20, 10]);
 	
 	App.createStar(60, 32, 32, [200,10,200], 0.6, [0.9,0.0,0.0], 
-		[1.0,1.0,0.9, 1.0,0.85,0.6, 1.0,0.6,0.2, 0.8,0.2,0.1]);
+		[0.8,0.2,0.1, 1.0,0.6,0.2, 1.0,0.85,0.6, 1.0,1.0,0.9]);
 
 	App.createStar(20, 32, 32, [-200,10,-200], 0.6, [1.0,1.0,1.0], 
 		[0.0,0.0,0.4, 0.2,0.3,0.8, 0.4,0.4,1.0, 1.0,1.0,1.0]);	
@@ -145,7 +158,7 @@ function updateCamera() {
 	renderer.camSpeed = parseFloat(camSpeed.value);
 	renderer.camHeight = parseFloat(zoom.value);
 }
-
+//TODO to be replaced
 App.updateTerrain = function(terValues){
 	console.log(terValues);
 	if (currentSelection >= spheres.length || currentSelection < 0) return;
@@ -174,16 +187,32 @@ function hexToVec(hex) {
   return [r, g, b];
 }
 
-
-
 // Model functions
-App.createPlanet = function(radius, lat, lon, pos){
+
+App.createMoon = function(radius, lat, lon, pos, parentID){
 	if(!(gl && shaderManager && renderer)) return;
+	let moon = new Moon(parentID);
+	let sphere = new Sphere(gl, renderer,"planetShader", shaderManager, radius, lat, lon);
+	sphere.texture = textureManager.textures.get("surface");
+	sphere.position = pos;
+	spheres.push(sphere);
+	renderer.addShape(sphere);
+	moon.baseModel=sphere;	
+	moon.selectPosition = pos;
+	moon.selectRadius = radius;
+	celestialBodies.push(moon);
+}
 
-	let planet = new CelestialBody();
 
-	let sphere = new Sphere(gl, renderer,"defaultShader", shaderManager, radius, lat, lon);
-	
+App.createPlanet = function(radius, lat, lon, pos){
+
+	if(!(gl && shaderManager && renderer)) return;
+	let planet = new Planet();
+
+	let sphere = new Sphere(gl, renderer,"planetShader", shaderManager, radius, lat, lon);
+	textureManager.makePlanetTexture(planet.id);
+	sphere.texture = textureManager.textures.get(planet.id);
+
 	sphere.position = pos;
 	spheres.push(sphere);
 
@@ -194,7 +223,6 @@ App.createPlanet = function(radius, lat, lon, pos){
 	
 
 
-	planet.type = "Planet";
 
 	planet.selectPosition = pos;
 	planet.selectRadius = radius;
@@ -205,14 +233,15 @@ App.createPlanet = function(radius, lat, lon, pos){
 //(MAX 4 COLOURS)
 App.createStar = function(radius, lat, lon, pos, glowStrength, glowColor, mainColors){
 
-	let star = new CelestialBody();
+	let star = new Star();
 
 	let sphere = new Sphere(gl, renderer,"starShader", shaderManager, radius, lat, lon);
 
 	sphere.uniforms["uGlowColor"] = glowColor;
 	sphere.uniforms["uGlowStrength"] = glowStrength;
 	sphere.uniforms["uRadius"] = radius;
-	sphere.uniforms["uMainColors"] = new Float32Array(mainColors); 
+	sphere.uniforms["uMainColors"] = new Float32Array(mainColors);
+
 	sphere.texture = textureManager.textures.get("star");
 	sphere.position = pos;	
 	spheres.push(sphere);
@@ -236,9 +265,8 @@ App.createStar = function(radius, lat, lon, pos, glowStrength, glowColor, mainCo
 	renderer.addShape(sphere);
 	renderer.addPointLight(pos, glowColor, glowStrength*100000.0, 252.0 + radius*radius);
 
-	star.atmosLayer = sphere;
+	star.glowLayer = sphere;
 
-	star.type = "Star";
 	star.selectPosition = pos;
 	star.selectRadius = radius;
 
