@@ -69,6 +69,8 @@ export default class Renderer {
 	}
 
 //Functions to render
+	//
+		//TODO: Bug involving order of drawing stuff. We need to draw the furthest away stuff first that is in the frustrum.
 
 	beginFrame(){
 		const gl = this.gl;

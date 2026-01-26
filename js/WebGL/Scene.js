@@ -1,7 +1,5 @@
 const { mat3, mat4, vec3, vec4 } = glMatrix;
 //handle some stuff from renderer that does not make sense to be there.
-//WIP
-//TODO make a briority bracket for shaders i.e render skybox first then planets then glow to avoid weird graphic artifacts
 export default class Scene{
     constructor(gl) {
 
@@ -35,6 +33,7 @@ export default class Scene{
 
 	submit(renderer) {
 		this.skybox.submit(renderer);
+		//order models by distance to camera.
 		for (const model of this.models) {
 			model.submit(renderer);
 		}

@@ -16,6 +16,8 @@ export default class Star extends CelestialBody {
 
 		this.glowLayer = null;
 
+		this.type = "Star";
+
 	
 	}
 
@@ -28,4 +30,4 @@ export default class Star extends CelestialBody {
 
 }
 
-
+//TODO decouple glow colour from the emision colour...

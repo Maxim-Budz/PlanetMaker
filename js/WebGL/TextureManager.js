@@ -47,7 +47,7 @@ export default class TextureManager {
 		const seed = Math.floor(Math.random() * 1e9);
 		let data = this.generatePlanetTexture(seed);
 		this.makeTextureFromRGBAArray(planetID, data, 1024, 512);
-		//saveTextureAsPNG(id, 1024, 512, data);
+		//saveTextureAsPNG(planetID, 1024, 512, data);
 		this.rngTextureNames.push(planetID);
 	}
 	
@@ -69,7 +69,7 @@ export default class TextureManager {
 
 	}
 
-	generatePlanetTexture(seed, quality = 2, frequency=1.2, octaves=6, persistence=0.5, lacunarity=2.0, seaLevel=0.5){
+	generatePlanetTexture(seed, quality = 2, frequency=1.2, octaves=6, persistence=0.5, lacunarity=2.0, seaLevel=0.55){
 		noise.seed(seed);
 	
 
@@ -97,6 +97,30 @@ export default class TextureManager {
 			const v = y / height;
 			const phi = v * Math.PI;
 
+			// Ice cap parameters
+			const northStart = 0.0;      // start of solid ice (top)
+			const northEnd = 0.12;       // start of fade
+			const northLimit = 0.18;     // end of fade
+
+			const southStart = 0.82;     // start of fade
+			const southEnd = 0.88;       // end of solid ice (bottom)
+
+			let iceFactor = 0;
+
+			// North pole
+			if (v < northEnd) {
+				if (v < northStart) iceFactor = 1.0;                 // solid ice
+				else iceFactor = 1.0 - (v - northStart) / (northEnd - northStart);  // fade
+			}
+			// South pole
+			else if (v > southStart) {
+				if (v > southEnd) iceFactor = 1.0;                   // solid ice
+				else iceFactor = (v - southStart) / (southEnd - southStart);        // fade
+			}
+
+			iceFactor = Math.min(Math.max(iceFactor, 0), 1);
+
+
 			for (let x = 0; x < width; x++) {
 				const u = x / width;
 				const theta = u * Math.PI * 2;
@@ -114,7 +138,7 @@ export default class TextureManager {
 					// Ocean
 					r = 20; g = 40; b = 120;
 				}
-				else if (h < seaLevel + 0.05) {
+				else if (h < seaLevel + 0.02) {
 					// Beach
 					r = 194; g = 178; b = 128;
 				}
@@ -129,6 +153,17 @@ export default class TextureManager {
 				else {
 					// Snow
 					r = 240; g = 240; b = 240;
+				}
+
+				        // Mix in ice caps
+				if (iceFactor > 0) {
+					const iceR = 255;
+					const iceG = 255;
+					const iceB = 255;
+
+					r = r * (1 - iceFactor) + iceR * iceFactor;
+					g = g * (1 - iceFactor) + iceG * iceFactor;
+					b = b * (1 - iceFactor) + iceB * iceFactor;
 				}
 
 				data[ptr++] = r;

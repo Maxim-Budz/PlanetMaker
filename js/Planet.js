@@ -30,6 +30,8 @@ export default class Planet extends CelestialBody {
 
 		this.weatherValues = {};
 
+		this.type = "Planet";
+
 	
 		
 	}	
