@@ -1,7 +1,9 @@
 import Renderer from './WebGL/Renderer.js';
+import RenderPass from './Constants/RenderPass.js';
 import ShaderManager from './WebGL/ShaderManager.js';
 import ShaderProgram from './WebGL/ShaderProgram.js';
 import TextureManager from './WebGL/TextureManager.js';
+import Scene from './WebGL/Scene.js';
 
 import Cube from './Shape/Cube.js';
 import Sphere from './Shape/Sphere.js';
@@ -15,10 +17,13 @@ import Star from './Star.js'
 
 window.App = window.App || {};
 const { mat4, vec3 } = glMatrix;
+const statsDiv = document.getElementById("stats");
 
 let renderer = null;
 let shaderManager = null;
 let textureManager = null;
+
+let mainScene = null;
 
 let gl = null;
 
@@ -82,12 +87,19 @@ async function init(){
         './shaders/Planet/planetFragment.glsl'
 	);
 
+	await shaderManager.load("planetGlowShader",
+        './shaders/Planet/planetVertex.glsl?',
+        './shaders/Planet/planetGlowFragment.glsl'
+	);
+
+
+
 
 	renderer.shaderManager = shaderManager;
 
+	mainScene = new Scene(gl);
 
-    gl.enable(gl.DEPTH_TEST);
-    gl.enable(gl.CULL_FACE);
+	renderer.currentScene = mainScene;
 
 	textureManager = new TextureManager(gl);
 
@@ -98,7 +110,8 @@ async function init(){
 
 	App.createSkybox();
 
-	openMenuForModel("None");	
+	openMenuForModel("None");
+
 }
 
 
@@ -139,8 +152,15 @@ async function main(){
 	function loop() {
 		const now = performance.now();
 		const dt = (now - last) / 1000;
-		last = now;
+		
+		renderer.beginFrame();
+		renderer.currentScene.submit(renderer);
 		renderer.render(dt, selectedID);
+
+		updateStats(now, renderer);
+		
+		last = now;
+
 		requestAnimationFrame(loop);
 	}
 	loop();
@@ -149,14 +169,12 @@ async function main(){
 
 //external functions
 function updateAmbient() {
-	if(!renderer) return;
-    renderer.setAmbientColor(hexToVec(ambCol.value));
+    mainScene.ambient = hexToVec(ambCol.value);
 }
 
 function updateCamera() {
-	if(!renderer) return;
-	renderer.camSpeed = parseFloat(camSpeed.value);
-	renderer.camHeight = parseFloat(zoom.value);
+	mainScene.camSpeed = parseFloat(camSpeed.value);
+	mainScene.camHeight = parseFloat(zoom.value);
 }
 //TODO to be replaced
 App.updateTerrain = function(terValues){
@@ -195,14 +213,15 @@ App.createMoon = function(radius, lat, lon, pos, parentID){
 	let sphere = new Sphere(gl, renderer,"planetShader", shaderManager, radius, lat, lon);
 	sphere.texture = textureManager.textures.get("surface");
 	sphere.position = pos;
+	sphere.renderPass = RenderPass.GEOMETRY;
 	spheres.push(sphere);
-	renderer.addShape(sphere);
 	moon.baseModel=sphere;	
 	moon.selectPosition = pos;
 	moon.selectRadius = radius;
+	
+	mainScene.addBody(moon);
 	celestialBodies.push(moon);
 }
-
 
 App.createPlanet = function(radius, lat, lon, pos){
 
@@ -214,19 +233,31 @@ App.createPlanet = function(radius, lat, lon, pos){
 	sphere.texture = textureManager.textures.get(planet.id);
 
 	sphere.position = pos;
+	sphere.renderPass = RenderPass.GEOMETRY; 
+
 	spheres.push(sphere);
 
-	renderer.addShape(sphere);
 	planet.baseModel = sphere;
 	//LOAD ATMOSPHERE ALSO
-	//
-	
+	sphere = new Sphere(gl, renderer,"planetGlowShader", shaderManager, radius*1.2, lat, lon);
 
+	sphere.uniforms["uGlowColor"] = [0.26,0.53,0.96];
+	sphere.uniforms["uGlowStrength"] = 1.0;
+	sphere.uniforms["uRadius"] = radius;
+	sphere.uniforms["uTransparency"] = 0.4;
+	sphere.uniforms["uPlanetCenter"] = pos;
 
+	sphere.renderPass = RenderPass.VFX; 
+	sphere.position = pos;
+
+	spheres.push(sphere);
+
+	planet.atmosLayer = sphere;
 
 	planet.selectPosition = pos;
 	planet.selectRadius = radius;
-
+	
+	mainScene.addBody(planet);
 	celestialBodies.push(planet);
 }
 
@@ -241,13 +272,11 @@ App.createStar = function(radius, lat, lon, pos, glowStrength, glowColor, mainCo
 	sphere.uniforms["uGlowStrength"] = glowStrength;
 	sphere.uniforms["uRadius"] = radius;
 	sphere.uniforms["uMainColors"] = new Float32Array(mainColors);
+	sphere.renderPass = RenderPass.GEOMETRY; 
 
 	sphere.texture = textureManager.textures.get("star");
 	sphere.position = pos;	
 	spheres.push(sphere);
-
-	renderer.addShape(sphere);
-	renderer.addPointLight(pos, glowColor, glowStrength*100000.0, 252.0 + radius*radius);
 
 	star.baseModel = sphere;
 	
@@ -258,18 +287,19 @@ App.createStar = function(radius, lat, lon, pos, glowStrength, glowColor, mainCo
 	sphere.uniforms["uRadius"] = radius;
 	sphere.uniforms["uTransparency"] = 0.4;
 	sphere.uniforms["uPlanetCenter"] = pos;
+	sphere.renderPass = RenderPass.VFX; 
 	sphere.position = pos;
 
 	spheres.push(sphere);
 
-	renderer.addShape(sphere);
-	renderer.addPointLight(pos, glowColor, glowStrength*100000.0, 252.0 + radius*radius);
+	mainScene.addPointLight(pos, glowColor, glowStrength*100000.0, 252.0 + radius*radius);
 
 	star.glowLayer = sphere;
 
 	star.selectPosition = pos;
 	star.selectRadius = radius;
-
+	
+	mainScene.addBody(star);
 	celestialBodies.push(star);
 }
 
@@ -280,13 +310,11 @@ App.createSkybox = function(){
 	sphere.texture = textureManager.textures.get("skybox");
 	sphere.position = [0.0, 0.0, 0.0];
 	sphere.frontFaceCull = true;
+	sphere.renderPass = RenderPass.SKYBOX; 
 	spheres.push(sphere);
 
-	renderer.skybox = sphere;
+	mainScene.skybox = sphere;
 }
-
-
-
 
 App.killPlanet = function(){
 	if(!renderer || currentSelection < 0 || currentSelection >= spheres.length ) return;
@@ -325,7 +353,6 @@ function toNDC(x, y, canvas) {
 }
 
 
-
 //Select Body code
 function checkSpheres(rayOrigin, rayDir){
 	let closest = Infinity;
@@ -342,7 +369,7 @@ function checkSpheres(rayOrigin, rayDir){
 	if (picked) {
 		currentSelection = spheres.indexOf(picked);
 		selectedID = picked.id;
-		renderer.focusPoint = picked.position;
+		mainScene.focusPoint = picked.position;
 	}else{
 		currentSelection = -1;
 		selectedID = null;
@@ -414,6 +441,27 @@ function openMenuForModel(modelID){
 }
 
 
+//HTML elements TODO move this to some other file
+let last = performance.now();
+let fps = 0;
+let lastFPSUpdate = performance.now();
+
+function updateStats(now, renderer) {
+
+	frames++;
+
+	if (now - lastFPSUpdate >= 1000) {
+        fps = frames;
+        frames = 0;
+        lastFPSUpdate = now;
+    }
+
+    last = now;
+
+    statsDiv.textContent =
+		`FPS: ${fps.toFixed(1)}
+		Draw Calls: ${renderer.drawCalls}`;
+}
 
 
 

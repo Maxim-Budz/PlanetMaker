@@ -1,17 +1,21 @@
 const { mat4, mat3, vec3 } = glMatrix;
 import Renderer from '../WebGL/Renderer.js';
-import ShaderManager from '../WebGL/ShaderManager.js'
+import RenderPass from '../Constants/RenderPass.js';
+import ShaderManager from '../WebGL/ShaderManager.js';
 
 export default class Shape {
-    constructor(gl, renderer, shaderName, shaderManager) {
+    constructor(gl, renderer, shaderName, shaderManager, renderPass) {
 
 		this.gl = gl;
 		this.id = Date.now().toString(36) + Math.random().toString(36).substr(2);
 
         this.shader = shaderManager.programs[shaderName];
+		this.renderPass = renderPass; 
 
 		this.renderer = renderer;
 		this.shaderManager = shaderManager;
+
+		this.boundingRadius = 10.0;
 
         this.position = [0, 0, 0];
         this.rotation = [0, 0, 0];
@@ -155,6 +159,14 @@ export default class Shape {
 			console.error("MISMATCH: You have " + vCount + " vertices but " + uvCount + " UVs!");
 		}
 	}
+
+	//submit thyself to render where it will be placed in correct queue.
+	submit(renderer){    
+		if (!renderer.sphereInFrustum(this.position, this.boundingRadius)) 
+			return;
+		renderer.submit(this.renderPass, this.shader.name, this);
+	}
+
 
 
 

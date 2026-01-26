@@ -32,7 +32,14 @@ export default class Planet extends CelestialBody {
 
 	
 		
-	}		
+	}	
+
+	submit(renderer){
+		if(this.baseModel)    this.baseModel.submit(renderer);
+		if(this.atmosLayer)   this.atmosLayer.submit(renderer);
+		if(this.weatherLayer) this.weatherLayer.submit(renderer);
+		
+	}
 
 }
 

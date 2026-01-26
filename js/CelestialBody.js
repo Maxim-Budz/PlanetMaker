@@ -9,4 +9,10 @@ export default class CelestialBody{
 
 		this.type = null;
 	}
+
+
+	submit(renderer){
+		if(this.baseModel)    this.baseModel.submit(renderer);
+	}
+
 }

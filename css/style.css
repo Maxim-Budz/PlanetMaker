@@ -184,3 +184,18 @@ input[type="color"] {
     background: #ccc;
     border-radius: 10px;
 }
+
+
+#stats {
+    position: fixed;
+    top: 10px;
+    left: 10px;
+    color: lime;
+    background: rgba(0,0,0,0.6);
+    font-family: monospace;
+    padding: 6px 10px;
+	white-space: pre-line;
+    line-height: 1.4em;
+    z-index: 9999;
+    pointer-events: none;
+}

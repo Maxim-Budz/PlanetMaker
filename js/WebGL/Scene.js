@@ -1,6 +1,7 @@
 const { mat3, mat4, vec3, vec4 } = glMatrix;
 //handle some stuff from renderer that does not make sense to be there.
 //WIP
+//TODO make a briority bracket for shaders i.e render skybox first then planets then glow to avoid weird graphic artifacts
 export default class Scene{
     constructor(gl) {
 
@@ -9,17 +10,12 @@ export default class Scene{
 
 		this.skybox = null;
 
-		
 		this.camSpeed = 0.1;
 		this.camHeight = 800.0;
 		this.camPos = [10, -16, 10];
 
 		this.focusPoint = [0,0,0];
 
-		this.aspect = gl.canvas.clientWidth / gl.canvas.clientHeight;
-		mat4.perspective(this.proj, 45 * Math.PI / 180, this.aspect, 0.1, 10000.0);
-        glMatrix.mat4.lookAt(this.view, this.camPos, [0, 0, 0], [0, 1, 0]);
-		
 		this.ambient = [0.1,0.1,0.1];
 		
 		this.pointLights = [];
@@ -29,14 +25,36 @@ export default class Scene{
 		this.lightIntensities = [];
 		this.lightDistances = [];
 
-		this.normalMatrix = mat3.create();
-		mat3.fromMat4(this.normalMatrix, this.model);
-		mat3.invert(this.normalMatrix, this.normalMatrix);
-		mat3.transpose(this.normalMatrix, this.normalMatrix);
+
 
 
 		this.numLights = this.pointLights.length;
 
+
+	}
+
+	submit(renderer) {
+		this.skybox.submit(renderer);
+		for (const model of this.models) {
+			model.submit(renderer);
+		}
+	}
+
+	addBody(body) {
+        this.models.push(body);
+    }
+
+
+	removeBody(id){
+		this.models = this.models.filter(m => m.id != id);
+	}
+
+	addPointLight(pos, color, intensity, maxDist){
+		this.pointLights.push({ position:pos, color:color, intensity:intensity, distance:maxDist});
+		this.lightPositions.push(...pos);
+		this.lightColors.push(...color);
+		this.lightIntensities.push(intensity);
+		this.lightDistances.push(maxDist);
 
 	}
 }

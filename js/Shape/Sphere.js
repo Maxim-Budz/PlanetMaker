@@ -42,6 +42,15 @@ export default class Sphere extends Shape {
 
 	}
 
+
+	//submit thyself to render where it will be placed in correct queue.
+	submit(renderer){    
+		if (!renderer.sphereInFrustum(this.position, this.radius)) 
+			return;
+		renderer.submit(this.renderPass, this.shader.name, this);
+	}
+
+
 	constructBasic(){
 		this.vertices = [];
 		this.normals = [];

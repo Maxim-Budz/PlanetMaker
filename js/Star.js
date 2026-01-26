@@ -17,7 +17,14 @@ export default class Star extends CelestialBody {
 		this.glowLayer = null;
 
 	
-	}		
+	}
+
+	submit(renderer){
+		if(this.baseModel)    this.baseModel.submit(renderer);
+		if(this.glowLayer)   this.glowLayer.submit(renderer);
+
+	}
+
 
 }
 

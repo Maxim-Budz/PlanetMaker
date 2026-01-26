@@ -6,7 +6,7 @@ export default class Moon extends CelestialBody {
 		this.parent = parentID;
 		this.color = null;
 		
-	}		
+	}
 
 }
 
