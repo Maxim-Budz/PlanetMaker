@@ -42,6 +42,15 @@ export default class Sphere extends Shape {
 
 	}
 
+
+	//submit thyself to render where it will be placed in correct queue.
+	submit(renderer){    
+		if (!renderer.sphereInFrustum(this.position, this.radius)) 
+			return;
+		renderer.submit(this.renderPass, this.shader.name, this);
+	}
+
+
 	constructBasic(){
 		this.vertices = [];
 		this.normals = [];
@@ -106,8 +115,10 @@ export default class Sphere extends Shape {
 			this.normals = [];
 			this.colors = [];
 			this.edges = [];
+			this.uvs = [];
 			
 		}
+		noise.seed(Math.random());
 
 		// 1) generate vertices
 		for (let i = 0; i <= this.latSeg; i++){
@@ -125,7 +136,20 @@ export default class Sphere extends Shape {
 				let ny = y / this.radius;
 				let nz = z / this.radius;
 
-				let h = fractalNoise(nx, ny, nz, this.octaves, this.lacunarity, this.persistence, this.frequency, this.amplitude);
+				// Warp for continents
+
+				const warpFreq = 4.0;
+				const warpStrength = 0.15;
+
+				const wx = noise.perlin3(nx * warpFreq, ny * warpFreq, nz * warpFreq);
+				const wy = noise.perlin3(nx * warpFreq + 100.0, ny * warpFreq, nz * warpFreq);
+				const wz = noise.perlin3(nx * warpFreq + 200.0, ny * warpFreq, nz * warpFreq);
+
+				const wnx = nx + wx * warpStrength;
+				const wny = ny + wy * warpStrength;
+				const wnz = nz + wz * warpStrength;
+
+				let h = fractalNoise(wnx, wny, wnz, this.octaves, this.lacunarity, this.persistence, this.frequency, this.amplitude);
 
 				if (j == this.lonSeg){
 					let p = this.latSeg * 3;
@@ -135,6 +159,7 @@ export default class Sphere extends Shape {
 					y = this.vertices[q+1];
 					z = this.vertices[q+2];
 					this.vertices.push(x, y, z);
+					this.uvs.push(j / this.lonSeg, i / this.latSeg);
 
 				}else{
 					const terrainScale=1.0;
@@ -148,6 +173,8 @@ export default class Sphere extends Shape {
 					y = ny * finalRadius;
 					z = nz * finalRadius;
 					this.vertices.push(x, y, z);
+					this.uvs.push(j / this.lonSeg, i / this.latSeg);
+
 				}
 			}
 		}
@@ -327,9 +354,7 @@ export default class Sphere extends Shape {
 	repaint(values){
 		const gl = this.gl;
 		this.paintValues = values;
-		console.log(this.colors);
 		this.colors = this.paint(values);
-		console.log(this.colors);
 
 		gl.bindBuffer(gl.ARRAY_BUFFER, this.colorBuffer);
 		gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.colors), gl.STATIC_DRAW);			
@@ -366,7 +391,6 @@ export default class Sphere extends Shape {
 
 function fractalNoise(nx, ny, nz, octaves, lacunarity, persistence, frequency, amplitude) {
     let total = 0;
-	noise.seed(Math.random());
 
     for (let i = 0; i < octaves; i++) {
 		let base = noise.perlin3(nx*frequency, ny*frequency, nz*frequency) * amplitude;

@@ -1,6 +1,6 @@
 
-const spawnRadiusInput = document.getElementById("spawnRadius");
-const spawnPositionArea = document.getElementById("spawnPos");
+const spawnRadiusInput = document.getElementById("spawnPlanetRadius");
+const spawnPositionArea = document.getElementById("spawnPlanetPos");
 const randomSelection = document.getElementById("randomisePlanet");
 const randomSpawnAmount = document.getElementById("randomSpawnAmount");
 
@@ -10,8 +10,8 @@ const killPlanetBtn = document.getElementById("killPlanet");
 
 console.log(spawnPlanetBtn);
 
-let stdDev = 1.5;
-let mean = 3.5;
+let stdDev = 2.5;
+let mean = 10.0;
 
 
 
@@ -31,7 +31,7 @@ function collectAndSpawn(){
 		if(randomSpawnAmount.value < 0) return;
 		for(let i = 0; i < randomSpawnAmount.value; i++){
 
-			const pos = Array.from({ length: 3 }, () => Math.random() * 200 - 100);
+			const pos = Array.from({ length: 3 }, () => Math.random() * 2000 - 1000);
 			let u = 0, v = 0;
 
 			while(u === 0) u = Math.random();

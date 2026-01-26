@@ -2,7 +2,6 @@ precision mediump float;
 
 
 uniform float uRadius;
-uniform float uTime;
 uniform vec3 uGlowColor;
 uniform float uGlowStrength;
 uniform vec3 uPlanetCenter;
@@ -29,14 +28,14 @@ void main(void) {
 
 	float fresnel = 1.0 - pow(1.0 - clamp(ndotv, 0.0, 1.0), 0.8 );
 	float rim = fresnel * smoothstep(0.0, 0.5, fresnel);
+	rim = pow(rim, 1.2);
 
 	float height = length(vPosition - uPlanetCenter) - uRadius;
 
 	vec3 color = uGlowColor * rim * glowMask;
 
-	gl_FragColor = vec4(color, uTransparency); 
+	gl_FragColor = vec4(color, 0.8); 
 }
-
 
 
 

@@ -19,8 +19,8 @@ varying vec2 vUV;
 vec3 starColor(float t) {
     t = clamp(t, 0.0, 1.0);
 
-    if (t < 0.3) return mix(uMainColors[0], uMainColors[1], t / 0.33);
-    if (t < 0.6) return mix(uMainColors[1], uMainColors[2], (t - 0.33) / 0.33);
+    if (t < 0.33) return mix(uMainColors[0], uMainColors[1], t / 0.33);
+    if (t < 0.66) return mix(uMainColors[1], uMainColors[2], (t - 0.33) / 0.33);
     return mix(uMainColors[2], uMainColors[3], (t - 0.66) / 0.34);
 }
 
