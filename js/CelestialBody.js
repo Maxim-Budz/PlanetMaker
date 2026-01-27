@@ -15,4 +15,8 @@ export default class CelestialBody{
 		if(this.baseModel)    this.baseModel.submit(renderer);
 	}
 
+	destroy(){
+		this.baseModel.destroy();
+	}
+
 }

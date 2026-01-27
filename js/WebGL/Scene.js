@@ -43,7 +43,6 @@ export default class Scene{
         this.models.push(body);
     }
 
-
 	removeBody(id){
 		this.models = this.models.filter(m => m.id != id);
 	}
@@ -57,3 +56,5 @@ export default class Scene{
 
 	}
 }
+
+

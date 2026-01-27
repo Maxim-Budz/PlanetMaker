@@ -1,6 +1,8 @@
 import Shape from './Shape.js';
 const { mat4, vec3 } = glMatrix;
 
+//TODO move away from per vertex colours and use texture instead.
+
 export default class Sphere extends Shape {
     constructor(gl, renderer, shaderName, shaderManager, radius, latSeg, lonSeg) {
 		super(gl, renderer, shaderName, shaderManager);
