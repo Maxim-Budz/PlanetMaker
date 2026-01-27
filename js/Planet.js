@@ -43,5 +43,10 @@ export default class Planet extends CelestialBody {
 		
 	}
 
+	destroy(){
+		this.baseModel.destroy();
+		this.atmosLayer.destroy();
+	}
+
 }
 

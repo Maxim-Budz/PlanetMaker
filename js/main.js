@@ -32,6 +32,7 @@ let celestialBodies = [];
 
 export let currentSelection = -1;
 export let selectedID = -1;
+export let selectedCBID = null;
 const canvas = document.getElementById("glCanvas");
 
 let selectedModelId = "None";
@@ -317,10 +318,11 @@ App.createSkybox = function(){
 }
 
 App.killPlanet = function(){
-	if(!renderer || currentSelection < 0 || currentSelection >= spheres.length ) return;
-	
-	renderer.removeShape(currentSelection);
-	spheres.splice(currentSelection,1);
+	if (!selectedCBID) return;	
+	mainScene.removeBody(selectedID);
+	celestialBodies.find(b => b.id == selectedCBID).destroy();
+	celestialBodies = celestialBodies.filter(b => b.id != selectedCBID)
+	openMenuForModel("None");
 }
 
 //Mouse & selecting code
@@ -389,12 +391,12 @@ function checkBodies(rayOrigin, rayDir){
 
 	if (picked) {
 		//currentSelection = celestialBodies.indexOf(picked);
-		//selectedID = picked.id;
+		selectedCBID = picked.id;
 		//renderer.focusPoint = picked.selectPosition;
 		openMenuForModel(picked.type);
 	}else{
 		//currentSelection = -1;
-		//selectedID = null;
+		selectedCBID = null;
 		openMenuForModel("None");
 	}
 }

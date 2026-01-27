@@ -166,9 +166,37 @@ export default class Shape {
 		renderer.submit(this.renderPass, this.shader.name, this);
 	}
 
+	destroy(){
+		const gl = this.gl;
+
+		if (this.vbo) {
+			gl.deleteBuffer(this.vbo);
+			this.vbo = null;
+		}
+
+		if (this.ibo) {
+			gl.deleteBuffer(this.ibo);
+			this.ibo = null;
+		}
+
+		if (this.vao) {
+			gl.deleteVertexArray(this.vao);
+			this.vao = null;
+		}
+
+		if (this.texture) {
+			//TODO ask texture manager to delete texture. Or make an oprion to not delete texture.
+			gl.deleteTexture(this.texture);
+			this.texture = null;
+		}
+
+		if (this.fbo) {
+			gl.deleteFramebuffer(this.fbo);
+			this.fbo = null;
+		}
 
 
-
+	}
 
 	draw(elapsed) {
 		const gl = this.gl;
