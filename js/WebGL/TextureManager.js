@@ -18,7 +18,7 @@ export default class TextureManager {
 		var image = new Image();
 
 		image.src = source;
-		image.onload = () => console.log("IMAGE LOADED", image.width, image.height);
+		//image.onload = () => console.log("IMAGE LOADED", image.width, image.height, image.src);
 		image.onerror = () => console.error("IMAGE FAILED TO LOAD", source);
 
 	

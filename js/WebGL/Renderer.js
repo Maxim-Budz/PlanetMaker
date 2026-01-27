@@ -96,6 +96,7 @@ export default class Renderer {
 
 	render(elapsed, selectedID){
 		if(! this.currentScene) return;
+		//this.sortQueues();   this is not required cos all my passes dont need to be sorted.
 		const gl = this.gl;
 
 		let t = performance.now() * 0.001;
@@ -117,6 +118,27 @@ export default class Renderer {
 		
 
 	}
+	
+	sortQueues(){
+		//TODO filter to only sort queues that are required such as transparent object that use
+		//gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+
+		for (const pass in this.renderQueues){
+			for (const [shaderName, shapes] of this.renderQueues[pass]){
+				for (const shape of shapes){
+					shape.distToCamera = distSq(shape.position, this.currentScene.camPos);
+				}			
+
+				shapes.sort((a, b) => {
+					return a.distToCamera - b.distToCamera;
+				});
+			}
+
+
+		}
+
+
+	}
 
 	drawPass(pass, elapsed, selectedID) {
 
@@ -136,8 +158,9 @@ export default class Renderer {
 			case RenderPass.VFX:
 				gl.enable(gl.BLEND);
 				gl.enable(gl.CULL_FACE);
-				gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-				gl.disable(gl.DEPTH_TEST);
+				gl.cullFace(gl.FRONT);
+				gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
+				gl.enable(gl.DEPTH_TEST);
 				gl.depthMask(false);
 
 				break;
@@ -289,9 +312,17 @@ export default class Renderer {
 
 }
 
+
 function checkGL(gl, where) {
     const err = gl.getError();
     if (err !== gl.NO_ERROR) {
         console.error("GL ERROR at", where, err);
     }
+}
+
+function distSq(a, b){
+    const dx = a[0] - b[0];
+    const dy = a[1] - b[1];
+    const dz = a[2] - b[2];
+    return dx*dx + dy*dy + dz*dz;
 }

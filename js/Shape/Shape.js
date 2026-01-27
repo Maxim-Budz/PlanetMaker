@@ -101,7 +101,6 @@ export default class Shape {
 
 		gl.bindBuffer(gl.ARRAY_BUFFER, this.vertexBuffer);
 		const posLoc = gl.getAttribLocation(this.shader.program, "aPosition");
-		console.log("aPosition location:", posLoc);
 		gl.enableVertexAttribArray(posLoc);
 		gl.vertexAttribPointer(posLoc, 3, gl.FLOAT, false, 0, 0);
 

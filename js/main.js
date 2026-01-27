@@ -105,7 +105,6 @@ async function init(){
 	textureManager.load("star", "./assets/Textures/sunTextureBW2.png");
 	textureManager.load("skybox", "./assets/Textures/starskybox.png");
 	textureManager.load("surface", "./assets/Textures/surfaceTest.jpg");
-	console.log(textureManager.textures);
 
 	App.createSkybox();
 
@@ -180,7 +179,6 @@ function updateCamera() {
 }
 //TODO to be replaced
 App.updateTerrain = function(terValues){
-	console.log(terValues);
 	if (currentSelection >= spheres.length || currentSelection < 0) return;
 	spheres[currentSelection].octaves = terValues.octaves;
 	spheres[currentSelection].lacunarity = terValues.lacunarity;
@@ -321,7 +319,6 @@ App.createSkybox = function(){
 App.killPlanet = function(){
 	if(!renderer || currentSelection < 0 || currentSelection >= spheres.length ) return;
 	
-	console.log("removing planet "+ currentSelection);
 	renderer.removeShape(currentSelection);
 	spheres.splice(currentSelection,1);
 }
@@ -424,18 +421,14 @@ function raySphereHit(rayOrigin, rayDir, center, radius) {
 
 function openMenuForModel(modelID){
 
-	console.log("Opening menu:", modelID);
 
 	document.querySelectorAll(".selected-model-menu").forEach(menu => {
-		console.log("closing", menu.dataset.model);
 		menu.classList.remove("open");
 	});
 
 	const menu = document.querySelector(
 		`.selected-model-menu[data-model="${modelID}"]`
 	);
-
-	console.log("found menu:", menu?.dataset.model);
 
 	if (menu){
 		menu.classList.add("open");

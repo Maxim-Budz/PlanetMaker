@@ -26,9 +26,7 @@ export default class ShaderManager{
 	//Loading & Compiling shader functions
 	async load(name, vertUrl, fragUrl) {
 		const gl = this.gl;
-		console.log("loading...")
 		const {program, uniforms, attributes} = await this.compileAndReflect(vertUrl, fragUrl);
-		console.log("Loaded: ", program, uniforms, attributes);
 		this.programs[name] = new ShaderProgram(gl,name, program, uniforms, attributes);
 	}
 
@@ -42,7 +40,6 @@ export default class ShaderManager{
 
 		const attribCount = gl.getProgramParameter(program, gl.ACTIVE_ATTRIBUTES);
 		const uniformCount = gl.getProgramParameter(program, gl.ACTIVE_UNIFORMS);
-		console.log(uniformCount);
 
 
 		for (let i = 0; i < attribCount; i++) {
@@ -66,7 +63,6 @@ export default class ShaderManager{
 
 			uniforms[name] = uniformMetadata;
 		}
-		console.log(uniforms);
 
 		return {program, uniforms, attributes}
 

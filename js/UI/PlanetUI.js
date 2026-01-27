@@ -8,7 +8,6 @@ const randomSpawnAmount = document.getElementById("randomSpawnAmount");
 const spawnPlanetBtn = document.getElementById("newPlanet");
 const killPlanetBtn = document.getElementById("killPlanet");
 
-console.log(spawnPlanetBtn);
 
 let stdDev = 2.5;
 let mean = 10.0;
