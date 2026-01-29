@@ -333,35 +333,6 @@ export default class Sphere extends Shape {
 }
 
 
-
-
-
-
-function ocean(br, bg, bb, bands, turbulenceStrength, cloudStrength, vertices, segments, divisor){
-
-	//const baseR = 0.1;
-	//const baseG = 0.3;
-	//const baseB = 0.6;
-	
-	let colors = [];
-	for( let i = 0; i < vertices.length; i += 3){
-		let t = ((i/3)% (divisor + 1)) / segments;
-		const cloud = (Math.sin(t * Math.PI * bands) * 0.5 + 0.5) * cloudStrength;
-		//const cloud = 0.3 * Math.sin(t * Math.PI * bands); // 8 stripes around sphere
-		const turbulence = (Math.random() - 0.05) * turbulenceStrength;
-		let factor = cloud + turbulence;
-
-		const r = br * (1 - factor) + 1.0 * factor;
-		const g = bg * (1 - factor) + 1.0 * factor;
-		const b = bb * (1 - factor) + 1.0 * factor;
-
-		colors.push(r, g, b);
-	}
-
-	return colors;
-
-}
-
 function cross(ax, ay, az, bx, by, bz) {
 	return [
 		ay * bz - az * by,
