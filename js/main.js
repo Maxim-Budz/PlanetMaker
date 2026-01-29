@@ -86,6 +86,11 @@ async function init(){
         './shaders/Planet/planetVertex.glsl?',
         './shaders/Planet/planetFragment.glsl'
 	);
+	await shaderManager.load("SwirlPlanetShader",
+        './shaders/Planet/planetVertex.glsl?',
+        './shaders/Planet/SwirlPlanetFragment.glsl'
+	);
+
 
 	await shaderManager.load("planetGlowShader",
         './shaders/Planet/planetVertex.glsl?',
@@ -229,10 +234,26 @@ App.createPlanet = function(radius, lat, lon, pos){
 	if(!(gl && shaderManager && renderer)) return;
 	let planet = new Planet();
 
-	let sphere = new Sphere(gl, renderer,"planetShader", shaderManager, radius, lat, lon);
-	textureManager.makePlanetTexture(planet.id);
-	sphere.texture = textureManager.textures.get(planet.id);
+	let sphere = new Sphere(gl, renderer,"SwirlPlanetShader", shaderManager, radius, lat, lon);
+	//TEMP
+	let values = {};
+	values.type = "Swirl";
+	values.colors = [];
+	values.bands = 8;
+	values.turbulence = 0.2;
+	values.cloudStrength = 0.2;
 
+	values.strength = 1;
+
+	textureManager.makePlanetTexture(planet.id, values);
+
+	let texture = textureManager.textures.get(planet.id);
+
+	if(!texture){
+		sphere.texture = textureManager.textures.get("err");
+	}else{
+		sphere.texture = texture;
+	}
 	sphere.position = pos;
 	sphere.renderPass = RenderPass.GEOMETRY; 
 

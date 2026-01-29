@@ -27,8 +27,8 @@ vec3 starColor(float t) {
 void main(void) {
 	//animated texture
 	vec2 uv = vUV;
-	uv.x += sin(uTime * 0.15 + uv.y * 10.0) * 0.03;
-	uv.y += cos(uTime * 0.12 + uv.x * 8.0) * 0.03;
+	uv.x += sin(uTime * 0.15 + uv.y * 10.0) * 0.06;
+	uv.y += cos(uTime * 0.12 + uv.x * 8.0) * 0.06;
 	uv = fract(uv);
 	vec3 tex = texture2D(uTexture, uv).rgb;
 
@@ -49,7 +49,7 @@ void main(void) {
     
 	
 	color = mix(color, uGlowColor, finalGlow);
-	color *= 1.0 + 0.075 * sin(uTime + mask * 10.0);
+	color *= 1.0 + 0.1 * sin(uTime + mask * 10.0);
 	gl_FragColor = vec4(color, uTransparency); 
 
 }

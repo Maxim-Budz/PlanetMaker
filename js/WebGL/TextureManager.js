@@ -5,6 +5,10 @@ export default class TextureManager {
 		this.rngTextureNames = [];
         this.nextUnit = 0;
         this.maxUnits = gl.getParameter(gl.MAX_COMBINED_TEXTURE_IMAGE_UNITS);
+
+		let errorTextureData = this.generateErrorTexture();
+		this.makeTextureFromRGBAArray("err", errorTextureData, 256, 128);
+
     }
 //TODO cubemap texture loading
 	load(name, source){
@@ -43,11 +47,32 @@ export default class TextureManager {
 		this.textures.set(name, texture);
 	}
 
-	makePlanetTexture(planetID){
+	makePlanetTexture(planetID, values){
+		let data;
+
+		switch(values.type){
+			case "Swirl":
+				data =  this.generateSwirlTexture(values.colors, values.strength);
+				break;
+			case "Ocean":
+				data = this.generateOceanTexture(values.colors[0], values.colors[1], values.colors[2], values.bands, values.turbulence,
+					values.cloudStrength, this.vertices, this.lonSeg, this.latSeg, 4);
+				break;
+			case "Terrain":
+				data = this.generateTerrainTexture();//values.colors, values.thresholds, values.capCol, values.capSize);
+				break;
+
+			default:
+				data = null;
+				console.error("Invalid values for planet texture!")
+				break;
+		}	
+
 		const seed = Math.floor(Math.random() * 1e9);
-		let data = this.generatePlanetTexture(seed);
-		this.makeTextureFromRGBAArray(planetID, data, 1024, 512);
-		//saveTextureAsPNG(planetID, 1024, 512, data);
+		//let data = this.generatePlanetTexture(seed);
+		if(!data) return;
+		this.makeTextureFromRGBAArray(planetID, data, 256, 128);
+		//saveTextureAsPNG(planetID, 256, 128, data);
 		this.rngTextureNames.push(planetID);
 	}
 	
@@ -62,18 +87,18 @@ export default class TextureManager {
 			gl.generateMipmap(gl.TEXTURE_2D);
 		} else {
 			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
-			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
 			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
 		}
 		this.textures.set(name, texture);
 
 	}
 
-	generatePlanetTexture(seed, quality = 2, frequency=1.2, octaves=6, persistence=0.5, lacunarity=2.0, seaLevel=0.55){
+	generateTerrainTexture(seed, quality = 2, frequency=1.2, octaves=6, persistence=0.5, lacunarity=2.0, seaLevel=0.55){
 		noise.seed(seed);
 	
 
-		const width	= 512*quality;
+		const width		= 512*quality;
 		const height	= 256*quality;
 
 		const data = new Uint8Array(width * height * 4);
@@ -174,15 +199,142 @@ export default class TextureManager {
 		}
 
 		return data;
+	}
 
+	generateSwirlTexture(colors, strength, width=256, height=128){
 
+		if (colors.length == 0) {
+
+			colors = randomColors();
+			console.log(colors);
+
+		}
+		
+		const data = new Uint8Array(width * height * 4);
+		let count = colors.length/3;
+
+		for (let y = 0; y < height; y++) {
+			for (let x = 0; x < width; x++) {
+
+				let u = x / (width - 1);
+				let v = y / (height - 1);
+
+				let theta = u * Math.PI * 2;   // longitude
+				let phi   = v * Math.PI;       // latitude
+
+				let px = Math.sin(phi) * Math.cos(theta);
+				let py = Math.cos(phi);
+				let pz = Math.sin(phi) * Math.sin(theta);
+
+				let radius = 1.0;
+
+				let angle = Math.atan2(pz, px);
+				let spinT = (angle + Math.PI/2) / (2 * Math.PI);
+				if (spinT < 0) spinT += 1;
+
+				let latT = phi / Math.PI;
+
+				let t = spinT + strength * latT;
+				t = ((t % 1) + 1) % 1;
+
+				let scaled = t * count;
+				let index = Math.floor(scaled) % count;
+				let nextIndex = (index + 1) % count;
+				let localT = scaled - Math.floor(scaled);
+
+				index *= 3;
+				nextIndex *= 3;
+
+				let r = lerp(colors[index],     colors[nextIndex],     localT);
+				let g = lerp(colors[index + 1], colors[nextIndex + 1], localT);
+				let b = lerp(colors[index + 2], colors[nextIndex + 2], localT);
+
+				let i = (y * width + x) * 4;
+				data[i]     = Math.floor(r * 255);
+				data[i + 1] = Math.floor(g * 255);
+				data[i + 2] = Math.floor(b * 255);
+				data[i + 3] = 255;
+			}
+		}
+
+		console.log(data);
+
+		return data;
+	}
+
+	generateErrorTexture() {
+		const width = 256;
+		const height = 128;
+		const checkerSize = 16;
+
+		const data = new Uint8Array(width * height * 4);
+
+		for (let y = 0; y < height; y++) {
+			for (let x = 0; x < width; x++) {
+
+				const i = (y * width + x) * 4;
+
+				const cx = Math.floor(x / checkerSize);
+				const cy = Math.floor(y / checkerSize);
+				const checker = (cx + cy) % 2;
+
+				if (checker === 0) {
+					data[i + 0] = 255; 
+					data[i + 1] = 0;   
+					data[i + 2] = 255; 
+					data[i + 3] = 255; 
+				} else {
+					data[i + 0] = 0;
+					data[i + 1] = 0;
+					data[i + 2] = 0;
+					data[i + 3] = 255;
+				}
+			}
+		}
+	return data;
 
 	}
 
+	generateOceanTexture(br,bg,bb, bands, turbulenceStrength, cloudStrength){
+		let height = 128;
+		let width = 256;
+		const data = new Uint8Array(width * height * 4);	
+		for(let y = 0; y<height; y++){
+			for(let x = 0; x<width; x++){
+				
+				let u = x / (width-1);
+				let v = y / (height-1);
+
+				let theta = u * Math.PI * 2;
+				let phi = v * Math.PI;
+
+				let t = u;
+
+				const cloud = (Math.sin(t * Math.PI * bands) * 0.5 + 0.5) * cloudStrength;
+				const turbulence = (Math.random() - 0.05) * turbulenceStrength;
+				let factor = cloud + turbulence;
+
+				factor = Math.max(0, Math.min(1, factor));
+
+				const r = br * (1 - factor) + 1.0 * factor;
+				const g = bg * (1 - factor) + 1.0 * factor;
+				const b = bb * (1 - factor) + 1.0 * factor;
+
+				let i = (y * width + x) * 4;
+				data[i]     = Math.floor(r * 255);
+				data[i + 1] = Math.floor(g * 255);
+				data[i + 2] = Math.floor(b * 255);
+				data[i + 3] = 255;
+
+			}
+		}
+
+		return data;
+	}
 	
 
 
-	}
+}
 
 
 
@@ -211,5 +363,21 @@ function saveTextureAsPNG(name, width, height, data) {
     link.download = name + ".png";
     link.href = canvas.toDataURL("image/png");
     link.click();
+}
+
+function randomColors(){
+	let n = Math.floor(Math.random() * 5) + 1;
+
+	const colors = [];
+
+	for(let i = 0; i<n*3; i++){
+		colors.push(Math.random());
+	}
+
+	return colors;
+}
+
+function lerp(a, b, t) {
+    return a + (b - a) * t;
 }
 
