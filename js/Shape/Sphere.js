@@ -180,31 +180,32 @@ export default class Sphere extends Shape {
 		this.normals = new Float32Array(this.vertices.length);
 
 		for (let t = 0; t < indices.length; t += 3) {
-        const i0 = indices[t] * 3;
-        const i1 = indices[t + 1] * 3;
-        const i2 = indices[t + 2] * 3;
+			const i0 = indices[t] * 3;
+			const i1 = indices[t + 1] * 3;
+			const i2 = indices[t + 2] * 3;
 
-        const v0 = [this.vertices[i0], this.vertices[i0 + 1], this.vertices[i0 + 2]];
-        const v1 = [this.vertices[i1], this.vertices[i1 + 1], this.vertices[i1 + 2]];
-        const v2 = [this.vertices[i2], this.vertices[i2 + 1], this.vertices[i2 + 2]];
+			const v0 = [this.vertices[i0], this.vertices[i0 + 1], this.vertices[i0 + 2]];
+			const v1 = [this.vertices[i1], this.vertices[i1 + 1], this.vertices[i1 + 2]];
+			const v2 = [this.vertices[i2], this.vertices[i2 + 1], this.vertices[i2 + 2]];
 
 
-        const e0 = [v1[0] - v0[0], v1[1] - v0[1], v1[2] - v0[2]];
-        const e1 = [v2[0] - v0[0], v2[1] - v0[1], v2[2] - v0[2]];
+			const e0 = [v1[0] - v0[0], v1[1] - v0[1], v1[2] - v0[2]];
+			const e1 = [v2[0] - v0[0], v2[1] - v0[1], v2[2] - v0[2]];
 
-        let fn = cross(e0[0], e0[1], e0[2], e1[0], e1[1], e1[2]);
-        fn = normalize(fn[0], fn[1], fn[2]);
+			let fn = cross(e0[0], e0[1], e0[2], e1[0], e1[1], e1[2]);
+			fn = normalize(fn[0], fn[1], fn[2]);
 
-        this.normals[i0]     += fn[0];
-        this.normals[i0 + 1] += fn[1];
-        this.normals[i0 + 2] += fn[2];
+			this.normals[i0]     += fn[0];
+			this.normals[i0 + 1] += fn[1];
+			this.normals[i0 + 2] += fn[2];
 
-        this.normals[i1]     += fn[0];
-        this.normals[i1 + 1] += fn[1];
-        this.normals[i1 + 2] += fn[2];
-		this.normals[i2]     += fn[0];
-        this.normals[i2 + 1] += fn[1];
-        this.normals[i2 + 2] += fn[2];
+			this.normals[i1]     += fn[0];
+			this.normals[i1 + 1] += fn[1];
+			this.normals[i1 + 2] += fn[2];
+
+			this.normals[i2]     += fn[0];
+			this.normals[i2 + 1] += fn[1];
+			this.normals[i2 + 2] += fn[2];
 		}
 
 		for (let i = 0; i < this.normals.length; i += 3) {

@@ -40,17 +40,27 @@
 			<div class="side-panel">
             <div class="selected-model-menu open" data-model="None">
                 <h2>Create New</h2>
+
+				<label>Type
+					<select id="selectCreateType">
+					    <option>Select Type</option>
+						<option value="planet">Planet</option>
+						<option value="star">Star</option>
+						<option value="moon">Moon</option>
+					</select>
+				</label>
                 
                 <label>Radius
                     <input type="number" id="spawnPlanetRadius" min="0" max="100" step="1" value="2">
                 </label>
 
-                <p>Position</p>
-                <div id="spawnPlanetPos"class="smallContainer">
-                    <div class="coord"><small>X</small><input type="number" id="newSpawnX" value="0"></div>
-                    <div class="coord"><small>Y</small><input type="number" id="newSpawnY" value="0"></div>
-                    <div class="coord"><small>Z</small><input type="number" id="newSpawnZ" value="0"></div>
-                </div>
+                <label>Position
+					<div id="spawnPlanetPos"class="smallContainer">
+						<div class="coord"><small>X</small><input type="number" id="newSpawnX" value="0"></div>
+						<div class="coord"><small>Y</small><input type="number" id="newSpawnY" value="0"></div>
+						<div class="coord"><small>Z</small><input type="number" id="newSpawnZ" value="0"></div>
+					</div>
+				</label>
 
                 <div class="random-settings">
                     <label class="row-label">

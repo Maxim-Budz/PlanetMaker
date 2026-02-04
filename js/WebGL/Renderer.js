@@ -52,7 +52,6 @@ export default class Renderer {
 	//loads the global values that is the same for all objects.
 	setFrameUniforms(shaderName) {
 
-
 		this.shaderManager.apply(shaderName, "uProj",  this.proj);
 		this.shaderManager.apply(shaderName, "uView",  this.view);
 		this.shaderManager.apply(shaderName, "uCamPos", this.currentScene.camPos);

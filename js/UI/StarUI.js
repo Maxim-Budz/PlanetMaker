@@ -19,8 +19,9 @@ function collectAndSpawn(){
 		.filter(input => input.type === "number")
 		.map(input => input.value);
 
-
 }
+
+
 
 
 
